@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local contact data (contains personal info, never commit)
+/data/contacts.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
