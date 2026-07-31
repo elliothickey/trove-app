@@ -1,0 +1,124 @@
+[
+  {
+    "id": "contact-1",
+    "name": "Priya Chandrasekaran",
+    "employer": "Skyline Robotics",
+    "school": "Northgate University",
+    "location": "Austin, TX",
+    "tags": [
+      "investor",
+      "robotics",
+      "mentor"
+    ],
+    "email": "priya.chandrasekaran@example.com",
+    "phone": "(512) 555-0142",
+    "notes": "Met at the Skyline Robotics demo day. Offered to make intros to hardware investors.",
+    "createdAt": "2026-01-05T15:00:00.000Z",
+    "updatedAt": "2026-01-05T15:00:00.000Z"
+  },
+  {
+    "id": "contact-2",
+    "name": "Marcus Webb",
+    "employer": "Fernbridge Analytics",
+    "school": "Lake Forest College",
+    "location": "Denver, CO",
+    "tags": [
+      "college-friend",
+      "hiking"
+    ],
+    "email": "marcus.webb@example.com",
+    "phone": "(303) 555-0177",
+    "notes": "Roommate sophomore year. Still does the annual Rockies hiking trip in September.",
+    "createdAt": "2026-01-12T18:30:00.000Z",
+    "updatedAt": "2026-01-12T18:30:00.000Z"
+  },
+  {
+    "id": "contact-3",
+    "name": "Sana Okafor",
+    "employer": "Brightleaf Design Studio",
+    "school": "Ashcombe Institute of Art",
+    "location": "Portland, OR",
+    "tags": [
+      "designer",
+      "collaborator"
+    ],
+    "email": "sana.okafor@example.com",
+    "phone": "(503) 555-0118",
+    "notes": "Freelance collaborator on the brand refresh project. Great eye for typography.",
+    "createdAt": "2026-02-02T14:15:00.000Z",
+    "updatedAt": "2026-02-02T14:15:00.000Z"
+  },
+  {
+    "id": "contact-4",
+    "name": "Diego Fuentes",
+    "employer": "Northgate University",
+    "location": "Austin, TX",
+    "tags": [
+      "mentor",
+      "academia"
+    ],
+    "email": "diego.fuentes@example.com",
+    "phone": "(512) 555-0193",
+    "notes": "Professor who supervised my capstone project. Good source of advice on grad programs.",
+    "createdAt": "2026-02-20T09:45:00.000Z",
+    "updatedAt": "2026-07-31T03:59:57.294Z"
+  },
+  {
+    "id": "contact-6",
+    "name": "Helena Brandt",
+    "employer": "Fernbridge Analytics",
+    "school": "Dunmore University",
+    "location": "Chicago, IL",
+    "tags": [
+      "former-coworker",
+      "data"
+    ],
+    "email": "helena.brandt@example.com",
+    "phone": "(312) 555-0129",
+    "notes": "Former teammate on the data platform team. Now leads analytics at Fernbridge.",
+    "createdAt": "2026-03-22T16:20:00.000Z",
+    "updatedAt": "2026-03-22T16:20:00.000Z"
+  },
+  {
+    "id": "contact-7",
+    "name": "Tomas Rivera",
+    "employer": "Independent / Freelance",
+    "school": "Ashcombe Institute of Art",
+    "location": "Denver, CO",
+    "tags": [
+      "photographer",
+      "friend"
+    ],
+    "email": "tomas.rivera@example.com",
+    "phone": "(303) 555-0184",
+    "notes": "Shot photos for the studio launch event. Always up for a coffee when in Denver.",
+    "createdAt": "2026-04-08T13:10:00.000Z",
+    "updatedAt": "2026-04-08T13:10:00.000Z"
+  },
+  {
+    "id": "contact-8",
+    "name": "Grace Lindqvist",
+    "employer": "Brightleaf Design Studio",
+    "school": "Northgate University",
+    "location": "Portland, OR",
+    "tags": [
+      "designer",
+      "book-club"
+    ],
+    "email": "grace.lindqvist@example.com",
+    "phone": "(503) 555-0155",
+    "notes": "In the same monthly book club. Also does illustration work on the side.",
+    "createdAt": "2026-05-01T10:05:00.000Z",
+    "updatedAt": "2026-05-01T10:05:00.000Z"
+  },
+  {
+    "id": "40694370-b24b-4e52-9802-eec49da1ba4c",
+    "name": "dave smith",
+    "employer": "palantir",
+    "school": "harvard",
+    "location": "boulder",
+    "tags": [],
+    "createdAt": "2026-07-31T04:05:51.627Z",
+    "updatedAt": "2026-07-31T04:05:51.627Z"
+  }
+]
