@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getContact } from "@/lib/data";
+import { getContact, getInteractionsForContact } from "@/lib/data";
 import DeleteButton from "@/components/DeleteButton";
+import InteractionTimeline from "@/components/InteractionTimeline";
 
 export default async function ContactDetailPage({
   params,
@@ -14,6 +15,8 @@ export default async function ContactDetailPage({
   if (!contact) {
     notFound();
   }
+
+  const interactions = await getInteractionsForContact(id);
 
   const details: { label: string; value?: string }[] = [
     { label: "Employer", value: contact.employer },
@@ -72,6 +75,19 @@ export default async function ContactDetailPage({
           <p className="whitespace-pre-wrap text-sm text-gray-900">{contact.notes}</p>
         </div>
       )}
+
+      <div className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-gray-500">Timeline</h2>
+          <Link
+            href={`/contacts/${contact.id}/interactions/new`}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+          >
+            + Log Interaction
+          </Link>
+        </div>
+        <InteractionTimeline contactId={contact.id} interactions={interactions} />
+      </div>
     </main>
   );
 }

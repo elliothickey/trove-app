@@ -22,3 +22,26 @@ export type ContactInput = {
   phone?: string;
   notes?: string;
 };
+
+export type InteractionType = "meeting" | "call" | "email" | "message" | "other";
+
+export type Interaction = {
+  id: string;
+  contactId: string;
+  type: InteractionType;
+  occurredAt: string;
+  location?: string;
+  summary: string;
+  notes?: string;
+  rawNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InteractionInput = {
+  type: InteractionType;
+  occurredAt: string;
+  location?: string;
+  summary: string;
+  notes?: string;
+};

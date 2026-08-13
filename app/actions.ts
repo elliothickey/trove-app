@@ -2,8 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createContact, deleteContact, updateContact } from "@/lib/data";
-import type { ContactInput } from "@/lib/types";
+import {
+  createContact,
+  createInteraction,
+  deleteContact,
+  deleteInteraction,
+  updateContact,
+  updateInteraction,
+} from "@/lib/data";
+import type { ContactInput, InteractionInput, InteractionType } from "@/lib/types";
 
 function parseContactInput(formData: FormData): ContactInput {
   const name = String(formData.get("name") ?? "").trim();
@@ -53,4 +60,61 @@ export async function deleteContactAction(id: string) {
   await deleteContact(id);
   revalidatePath("/");
   redirect("/");
+}
+
+const INTERACTION_TYPES: InteractionType[] = ["meeting", "call", "email", "message", "other"];
+
+function parseInteractionInput(formData: FormData): InteractionInput {
+  const summary = String(formData.get("summary") ?? "").trim();
+  if (!summary) {
+    throw new Error("Summary is required");
+  }
+
+  const occurredAtRaw = String(formData.get("occurredAt") ?? "").trim();
+  if (!occurredAtRaw) {
+    throw new Error("Date is required");
+  }
+  const occurredAt = new Date(occurredAtRaw).toISOString();
+
+  const typeRaw = String(formData.get("type") ?? "");
+  const type = INTERACTION_TYPES.includes(typeRaw as InteractionType)
+    ? (typeRaw as InteractionType)
+    : "other";
+
+  const optional = (key: string): string | undefined => {
+    const value = String(formData.get(key) ?? "").trim();
+    return value.length > 0 ? value : undefined;
+  };
+
+  return {
+    type,
+    occurredAt,
+    location: optional("location"),
+    summary,
+    notes: optional("notes"),
+  };
+}
+
+export async function createInteractionAction(contactId: string, formData: FormData) {
+  const input = parseInteractionInput(formData);
+  await createInteraction(contactId, input);
+  revalidatePath(`/contacts/${contactId}`);
+  redirect(`/contacts/${contactId}`);
+}
+
+export async function updateInteractionAction(
+  contactId: string,
+  interactionId: string,
+  formData: FormData
+) {
+  const input = parseInteractionInput(formData);
+  await updateInteraction(interactionId, input);
+  revalidatePath(`/contacts/${contactId}`);
+  redirect(`/contacts/${contactId}`);
+}
+
+export async function deleteInteractionAction(contactId: string, interactionId: string) {
+  await deleteInteraction(interactionId);
+  revalidatePath(`/contacts/${contactId}`);
+  redirect(`/contacts/${contactId}`);
 }

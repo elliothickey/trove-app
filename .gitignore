@@ -38,6 +38,7 @@ yarn-error.log*
 
 # local contact data (contains personal info, never commit)
 /data/contacts.json
+/data/interactions.json
 
 # typescript
 *.tsbuildinfo

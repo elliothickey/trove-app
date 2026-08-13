@@ -1,8 +1,9 @@
 import { promises as fs } from "fs";
 import path from "path";
-import type { Contact, ContactInput } from "@/lib/types";
+import type { Contact, ContactInput, Interaction, InteractionInput } from "@/lib/types";
 
 const dataFilePath = path.join(process.cwd(), "data", "contacts.json");
+const interactionsFilePath = path.join(process.cwd(), "data", "interactions.json");
 
 async function readContacts(): Promise<Contact[]> {
   const raw = await fs.readFile(dataFilePath, "utf-8");
@@ -57,4 +58,73 @@ export async function deleteContact(id: string): Promise<void> {
   const contacts = await readContacts();
   const remaining = contacts.filter((contact) => contact.id !== id);
   await writeContacts(remaining);
+}
+
+async function readInteractions(): Promise<Interaction[]> {
+  const raw = await fs.readFile(interactionsFilePath, "utf-8");
+  return JSON.parse(raw) as Interaction[];
+}
+
+async function writeInteractions(interactions: Interaction[]): Promise<void> {
+  await fs.writeFile(
+    interactionsFilePath,
+    JSON.stringify(interactions, null, 2) + "\n",
+    "utf-8"
+  );
+}
+
+export async function getInteractionsForContact(contactId: string): Promise<Interaction[]> {
+  const interactions = await readInteractions();
+  return interactions
+    .filter((interaction) => interaction.contactId === contactId)
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+}
+
+export async function getInteraction(id: string): Promise<Interaction | undefined> {
+  const interactions = await readInteractions();
+  return interactions.find((interaction) => interaction.id === id);
+}
+
+export async function createInteraction(
+  contactId: string,
+  input: InteractionInput
+): Promise<Interaction> {
+  const interactions = await readInteractions();
+  const now = new Date().toISOString();
+  const interaction: Interaction = {
+    id: crypto.randomUUID(),
+    contactId,
+    ...input,
+    rawNotes: input.notes,
+    createdAt: now,
+    updatedAt: now,
+  };
+  interactions.push(interaction);
+  await writeInteractions(interactions);
+  return interaction;
+}
+
+export async function updateInteraction(
+  id: string,
+  input: InteractionInput
+): Promise<Interaction> {
+  const interactions = await readInteractions();
+  const index = interactions.findIndex((interaction) => interaction.id === id);
+  if (index === -1) {
+    throw new Error(`Interaction not found: ${id}`);
+  }
+  const updated: Interaction = {
+    ...interactions[index],
+    ...input,
+    updatedAt: new Date().toISOString(),
+  };
+  interactions[index] = updated;
+  await writeInteractions(interactions);
+  return updated;
+}
+
+export async function deleteInteraction(id: string): Promise<void> {
+  const interactions = await readInteractions();
+  const remaining = interactions.filter((interaction) => interaction.id !== id);
+  await writeInteractions(remaining);
 }
