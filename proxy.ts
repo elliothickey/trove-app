@@ -25,7 +25,19 @@ export async function proxy(request: NextRequest) {
 
   // Refreshes the auth session cookie if it's expired. Server Components
   // can't write cookies themselves, so this has to happen here.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+  const isPublic =
+    pathname === "/login" ||
+    pathname === "/auth/callback" ||
+    pathname.startsWith("/auth/callback/");
+
+  if (!user && !isPublic) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
   return response;
 }
