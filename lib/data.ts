@@ -1,5 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Contact, ContactInput, Interaction, InteractionInput } from "@/lib/types";
+import type {
+  Contact,
+  ContactInput,
+  ContactEducation,
+  ContactEducationInput,
+  ContactEmployment,
+  ContactEmploymentInput,
+  ContactLocation,
+  ContactLocationInput,
+  Interaction,
+  InteractionInput,
+} from "@/lib/types";
 
 type ContactRow = {
   id: string;
@@ -24,6 +35,39 @@ type InteractionRow = {
   summary: string;
   notes: string | null;
   raw_notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ContactEducationRow = {
+  id: string;
+  contact_id: string;
+  school: string;
+  degree: string | null;
+  field_of_study: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ContactEmploymentRow = {
+  id: string;
+  contact_id: string;
+  company: string;
+  role: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_current: boolean | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ContactLocationRow = {
+  id: string;
+  contact_id: string;
+  kind: string | null;
+  location: string;
   created_at: string;
   updated_at: string;
 };
@@ -81,6 +125,72 @@ function interactionInputToRow(input: InteractionInput) {
     location: input.location ?? null,
     summary: input.summary,
     notes: input.notes ?? null,
+  };
+}
+
+function rowToContactEducation(row: ContactEducationRow): ContactEducation {
+  return {
+    id: row.id,
+    contactId: row.contact_id,
+    school: row.school,
+    degree: row.degree ?? undefined,
+    fieldOfStudy: row.field_of_study ?? undefined,
+    startDate: row.start_date ?? undefined,
+    endDate: row.end_date ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function contactEducationInputToRow(input: ContactEducationInput) {
+  return {
+    school: input.school,
+    degree: input.degree ?? null,
+    field_of_study: input.fieldOfStudy ?? null,
+    start_date: input.startDate ?? null,
+    end_date: input.endDate ?? null,
+  };
+}
+
+function rowToContactEmployment(row: ContactEmploymentRow): ContactEmployment {
+  return {
+    id: row.id,
+    contactId: row.contact_id,
+    company: row.company,
+    role: row.role ?? undefined,
+    startDate: row.start_date ?? undefined,
+    endDate: row.end_date ?? undefined,
+    isCurrent: row.is_current ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function contactEmploymentInputToRow(input: ContactEmploymentInput) {
+  return {
+    company: input.company,
+    role: input.role ?? null,
+    start_date: input.startDate ?? null,
+    end_date: input.endDate ?? null,
+    is_current: input.isCurrent ?? null,
+  };
+}
+
+function rowToContactLocation(row: ContactLocationRow): ContactLocation {
+  return {
+    id: row.id,
+    contactId: row.contact_id,
+    kind: (row.kind as ContactLocation["kind"]) ?? undefined,
+    location: row.location,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function contactLocationInputToRow(input: ContactLocationInput) {
+  return {
+    kind: input.kind ?? null,
+    location: input.location,
   };
 }
 
@@ -258,6 +368,267 @@ export async function updateInteraction(
 export async function deleteInteraction(id: string): Promise<void> {
   const { supabase } = await requireUser();
   const { error } = await supabase.from("interactions").delete().eq("id", id);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function getEducationForContact(contactId: string): Promise<ContactEducation[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contact_education")
+    .select("*")
+    .eq("contact_id", contactId)
+    .order("start_date", { ascending: false, nullsFirst: false });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return (data as ContactEducationRow[]).map(rowToContactEducation);
+}
+
+export async function getContactEducation(id: string): Promise<ContactEducation | undefined> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contact_education")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data ? rowToContactEducation(data as ContactEducationRow) : undefined;
+}
+
+export async function createContactEducation(
+  contactId: string,
+  input: ContactEducationInput
+): Promise<ContactEducation> {
+  const { supabase, user } = await requireUser();
+
+  const contact = await getContact(contactId);
+  if (!contact) {
+    throw new Error(`Contact not found: ${contactId}`);
+  }
+
+  const { data, error } = await supabase
+    .from("contact_education")
+    .insert({
+      ...contactEducationInputToRow(input),
+      user_id: user.id,
+      contact_id: contactId,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "42501") {
+      throw new Error(`Contact not found: ${contactId}`);
+    }
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error(`Contact not found: ${contactId}`);
+  }
+  return rowToContactEducation(data as ContactEducationRow);
+}
+
+export async function updateContactEducation(
+  id: string,
+  input: ContactEducationInput
+): Promise<ContactEducation> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase
+    .from("contact_education")
+    .update({ ...contactEducationInputToRow(input), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error(`Contact education not found: ${id}`);
+  }
+  return rowToContactEducation(data as ContactEducationRow);
+}
+
+export async function deleteContactEducation(id: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from("contact_education").delete().eq("id", id);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function getEmploymentForContact(contactId: string): Promise<ContactEmployment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contact_employment")
+    .select("*")
+    .eq("contact_id", contactId)
+    .order("start_date", { ascending: false, nullsFirst: false });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return (data as ContactEmploymentRow[]).map(rowToContactEmployment);
+}
+
+export async function getContactEmployment(id: string): Promise<ContactEmployment | undefined> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contact_employment")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data ? rowToContactEmployment(data as ContactEmploymentRow) : undefined;
+}
+
+export async function createContactEmployment(
+  contactId: string,
+  input: ContactEmploymentInput
+): Promise<ContactEmployment> {
+  const { supabase, user } = await requireUser();
+
+  const contact = await getContact(contactId);
+  if (!contact) {
+    throw new Error(`Contact not found: ${contactId}`);
+  }
+
+  const { data, error } = await supabase
+    .from("contact_employment")
+    .insert({
+      ...contactEmploymentInputToRow(input),
+      user_id: user.id,
+      contact_id: contactId,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "42501") {
+      throw new Error(`Contact not found: ${contactId}`);
+    }
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error(`Contact not found: ${contactId}`);
+  }
+  return rowToContactEmployment(data as ContactEmploymentRow);
+}
+
+export async function updateContactEmployment(
+  id: string,
+  input: ContactEmploymentInput
+): Promise<ContactEmployment> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase
+    .from("contact_employment")
+    .update({ ...contactEmploymentInputToRow(input), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error(`Contact employment not found: ${id}`);
+  }
+  return rowToContactEmployment(data as ContactEmploymentRow);
+}
+
+export async function deleteContactEmployment(id: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from("contact_employment").delete().eq("id", id);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function getLocationsForContact(contactId: string): Promise<ContactLocation[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contact_locations")
+    .select("*")
+    .eq("contact_id", contactId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return (data as ContactLocationRow[]).map(rowToContactLocation);
+}
+
+export async function getContactLocation(id: string): Promise<ContactLocation | undefined> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contact_locations")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data ? rowToContactLocation(data as ContactLocationRow) : undefined;
+}
+
+export async function createContactLocation(
+  contactId: string,
+  input: ContactLocationInput
+): Promise<ContactLocation> {
+  const { supabase, user } = await requireUser();
+
+  const contact = await getContact(contactId);
+  if (!contact) {
+    throw new Error(`Contact not found: ${contactId}`);
+  }
+
+  const { data, error } = await supabase
+    .from("contact_locations")
+    .insert({
+      ...contactLocationInputToRow(input),
+      user_id: user.id,
+      contact_id: contactId,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "42501") {
+      throw new Error(`Contact not found: ${contactId}`);
+    }
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error(`Contact not found: ${contactId}`);
+  }
+  return rowToContactLocation(data as ContactLocationRow);
+}
+
+export async function updateContactLocation(
+  id: string,
+  input: ContactLocationInput
+): Promise<ContactLocation> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase
+    .from("contact_locations")
+    .update({ ...contactLocationInputToRow(input), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new Error(`Contact location not found: ${id}`);
+  }
+  return rowToContactLocation(data as ContactLocationRow);
+}
+
+export async function deleteContactLocation(id: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from("contact_locations").delete().eq("id", id);
   if (error) {
     throw new Error(error.message);
   }

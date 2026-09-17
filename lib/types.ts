@@ -45,3 +45,59 @@ export type InteractionInput = {
   summary: string;
   notes?: string;
 };
+
+export type ContactEducation = {
+  id: string;
+  contactId: string;
+  school: string;
+  degree?: string;
+  fieldOfStudy?: string;
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContactEducationInput = {
+  school: string;
+  degree?: string;
+  fieldOfStudy?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+export type ContactEmployment = {
+  id: string;
+  contactId: string;
+  company: string;
+  role?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContactEmploymentInput = {
+  company: string;
+  role?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+};
+
+export type ContactLocationKind = "hometown" | "current" | "previous";
+
+export type ContactLocation = {
+  id: string;
+  contactId: string;
+  kind?: ContactLocationKind;
+  location: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContactLocationInput = {
+  kind?: ContactLocationKind;
+  location: string;
+};
