@@ -16,6 +16,12 @@ export default async function AppHeader() {
         </Link>
         {user && (
           <div className="flex items-center gap-3">
+            <Link
+              href="/quick-capture"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Quick Capture
+            </Link>
             <span className="text-sm text-gray-500">{user.email}</span>
             <form action={signOutAction}>
               <button
