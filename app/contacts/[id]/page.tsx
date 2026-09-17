@@ -1,8 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getContact, getInteractionsForContact } from "@/lib/data";
+import {
+  getContact,
+  getEducationForContact,
+  getEmploymentForContact,
+  getInteractionsForContact,
+  getLocationsForContact,
+} from "@/lib/data";
 import DeleteButton from "@/components/DeleteButton";
+import EducationList from "@/components/EducationList";
+import EmploymentList from "@/components/EmploymentList";
 import InteractionTimeline from "@/components/InteractionTimeline";
+import LocationList from "@/components/LocationList";
 
 export default async function ContactDetailPage({
   params,
@@ -17,6 +26,9 @@ export default async function ContactDetailPage({
   }
 
   const interactions = await getInteractionsForContact(id);
+  const employment = await getEmploymentForContact(id);
+  const education = await getEducationForContact(id);
+  const locations = await getLocationsForContact(id);
 
   const details: { label: string; value?: string }[] = [
     { label: "Employer", value: contact.employer },
@@ -75,6 +87,45 @@ export default async function ContactDetailPage({
           <p className="whitespace-pre-wrap text-sm text-gray-900">{contact.notes}</p>
         </div>
       )}
+
+      <div className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-gray-500">Employment</h2>
+          <Link
+            href={`/contacts/${contact.id}/employment/new`}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+          >
+            + Add Employment
+          </Link>
+        </div>
+        <EmploymentList contactId={contact.id} employment={employment} />
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-gray-500">Education</h2>
+          <Link
+            href={`/contacts/${contact.id}/education/new`}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+          >
+            + Add Education
+          </Link>
+        </div>
+        <EducationList contactId={contact.id} education={education} />
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-gray-500">Locations</h2>
+          <Link
+            href={`/contacts/${contact.id}/locations/new`}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+          >
+            + Add Location
+          </Link>
+        </div>
+        <LocationList contactId={contact.id} locations={locations} />
+      </div>
 
       <div className="mt-8">
         <div className="mb-3 flex items-center justify-between">
