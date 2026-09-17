@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { extractQuickCaptureAction, type QuickCaptureState } from "@/app/quick-capture/actions";
-import ExtractionResult from "@/components/ExtractionResult";
+import QuickCaptureReview from "@/components/QuickCaptureReview";
 
 const initialState: QuickCaptureState = { status: "idle" };
 
@@ -48,7 +48,7 @@ export default function QuickCaptureForm() {
               {state.note}
             </p>
           </div>
-          <ExtractionResult extracted={state.extracted} />
+          <QuickCaptureReview key={state.note} extracted={state.extracted} />
         </div>
       )}
     </div>
