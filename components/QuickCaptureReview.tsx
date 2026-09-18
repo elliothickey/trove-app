@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type {
   ExtractedContact,
   ExtractedEducation,
@@ -8,6 +8,7 @@ import type {
   ExtractedLocation,
 } from "@/lib/ai/types";
 import type { ContactLocationKind } from "@/lib/types";
+import { saveQuickCaptureContactAction } from "@/app/quick-capture/actions";
 
 const LOCATION_KIND_OPTIONS: { value: ContactLocationKind | ""; label: string }[] = [
   { value: "", label: "Unspecified" },
@@ -197,13 +198,46 @@ function LocationRow({
   );
 }
 
-export default function QuickCaptureReview({ extracted }: { extracted: ExtractedContact }) {
+export default function QuickCaptureReview({
+  extracted,
+  rawNote,
+}: {
+  extracted: ExtractedContact;
+  rawNote: string;
+}) {
   const [name, setName] = useState(extracted.name ?? "");
   const [employment, setEmployment] = useState<ExtractedEmployment[]>(extracted.employment);
   const [education, setEducation] = useState<ExtractedEducation[]>(extracted.education);
   const [locations, setLocations] = useState<ExtractedLocation[]>(extracted.locations);
   const [interactionSummary, setInteractionSummary] = useState(extracted.interactionSummary ?? "");
   const [notes, setNotes] = useState(extracted.notes ?? "");
+  const [isSaving, startSave] = useTransition();
+  const [saveError, setSaveError] = useState<string | undefined>();
+
+  const trimmedName = name.trim();
+
+  // The draft (name/employment/education/locations/etc. state above) is
+  // never cleared here -- on error it stays exactly as the user left it so
+  // they can fix the problem and retry without re-entering anything.
+  function handleSave() {
+    if (isSaving) return;
+    setSaveError(undefined);
+    startSave(async () => {
+      const result = await saveQuickCaptureContactAction({
+        rawNote,
+        name: trimmedName,
+        employment,
+        education,
+        locations,
+        interactionSummary,
+        notes,
+      });
+      // On success this never resolves here -- the action redirects instead.
+      if (result.status === "error") {
+        setSaveError(result.error);
+      }
+    });
+  }
 
   function updateAt<T>(setList: (updater: (prev: T[]) => T[]) => void, index: number, patch: Partial<T>) {
     setList((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
@@ -217,7 +251,7 @@ export default function QuickCaptureReview({ extracted }: { extracted: Extracted
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-gray-500">
-          Review &amp; edit (nothing is saved yet)
+          Review &amp; edit, then save to your contacts
         </h2>
       </div>
 
@@ -326,15 +360,23 @@ export default function QuickCaptureReview({ extracted }: { extracted: Extracted
         />
       </div>
 
+      {saveError && (
+        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {saveError}
+        </p>
+      )}
+
       <div className="flex items-center gap-3 border-t border-gray-200 pt-4">
         <button
           type="button"
-          disabled
-          title="Saving to your contacts isn't available yet"
-          className="cursor-not-allowed rounded-md bg-gray-300 px-4 py-2 text-sm font-medium text-gray-500"
+          onClick={handleSave}
+          disabled={!trimmedName || isSaving}
+          title={!trimmedName ? "Add a name before saving" : undefined}
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300"
         >
-          Save to CRM (coming soon)
+          {isSaving ? "Saving..." : "Save to CRM"}
         </button>
+        {!trimmedName && <p className="text-xs text-gray-500">Add a name before saving.</p>}
       </div>
     </div>
   );

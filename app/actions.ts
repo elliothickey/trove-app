@@ -147,12 +147,20 @@ function parseEmploymentInput(formData: FormData): ContactEmploymentInput {
     return value.length > 0 ? value : undefined;
   };
 
+  const startDate = optional("startDate");
+  const endDate = optional("endDate");
+
   return {
     company,
     role: optional("role"),
-    startDate: optional("startDate"),
-    endDate: optional("endDate"),
+    startDate,
+    endDate,
     isCurrent: formData.get("isCurrent") === "on",
+    // An exact date entered here supersedes any preserved "as written" text
+    // for that same field; otherwise carry through whatever was already
+    // stored (see the hidden fields in EmploymentForm).
+    startDateText: startDate ? undefined : optional("startDateText"),
+    endDateText: endDate ? undefined : optional("endDateText"),
   };
 }
 
@@ -191,12 +199,20 @@ function parseEducationInput(formData: FormData): ContactEducationInput {
     return value.length > 0 ? value : undefined;
   };
 
+  const startDate = optional("startDate");
+  const endDate = optional("endDate");
+
   return {
     school,
     degree: optional("degree"),
     fieldOfStudy: optional("fieldOfStudy"),
-    startDate: optional("startDate"),
-    endDate: optional("endDate"),
+    startDate,
+    endDate,
+    // An exact date entered here supersedes any preserved "as written" text
+    // for that same field; otherwise carry through whatever was already
+    // stored (see the hidden fields in EducationForm).
+    startDateText: startDate ? undefined : optional("startDateText"),
+    endDateText: endDate ? undefined : optional("endDateText"),
   };
 }
 

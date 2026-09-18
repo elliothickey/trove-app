@@ -6,7 +6,7 @@ export default function QuickCapturePage() {
       <h1 className="mb-2 text-2xl font-semibold text-gray-900">Quick Capture</h1>
       <p className="mb-6 text-sm text-gray-500">
         Paste a messy note about someone you just met. AI will pull out structured details for
-        you to review — nothing is saved to your contacts yet.
+        you to review and edit before anything is saved to your contacts.
       </p>
       <QuickCaptureForm />
     </main>

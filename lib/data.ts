@@ -47,6 +47,8 @@ type ContactEducationRow = {
   field_of_study: string | null;
   start_date: string | null;
   end_date: string | null;
+  start_date_text: string | null;
+  end_date_text: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -59,6 +61,8 @@ type ContactEmploymentRow = {
   start_date: string | null;
   end_date: string | null;
   is_current: boolean | null;
+  start_date_text: string | null;
+  end_date_text: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -137,6 +141,8 @@ function rowToContactEducation(row: ContactEducationRow): ContactEducation {
     fieldOfStudy: row.field_of_study ?? undefined,
     startDate: row.start_date ?? undefined,
     endDate: row.end_date ?? undefined,
+    startDateText: row.start_date_text ?? undefined,
+    endDateText: row.end_date_text ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -149,6 +155,8 @@ function contactEducationInputToRow(input: ContactEducationInput) {
     field_of_study: input.fieldOfStudy ?? null,
     start_date: input.startDate ?? null,
     end_date: input.endDate ?? null,
+    start_date_text: input.startDateText ?? null,
+    end_date_text: input.endDateText ?? null,
   };
 }
 
@@ -161,6 +169,8 @@ function rowToContactEmployment(row: ContactEmploymentRow): ContactEmployment {
     startDate: row.start_date ?? undefined,
     endDate: row.end_date ?? undefined,
     isCurrent: row.is_current ?? undefined,
+    startDateText: row.start_date_text ?? undefined,
+    endDateText: row.end_date_text ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -173,6 +183,8 @@ function contactEmploymentInputToRow(input: ContactEmploymentInput) {
     start_date: input.startDate ?? null,
     end_date: input.endDate ?? null,
     is_current: input.isCurrent ?? null,
+    start_date_text: input.startDateText ?? null,
+    end_date_text: input.endDateText ?? null,
   };
 }
 

@@ -48,7 +48,7 @@ export default function QuickCaptureForm() {
               {state.note}
             </p>
           </div>
-          <QuickCaptureReview key={state.note} extracted={state.extracted} />
+          <QuickCaptureReview key={state.note} extracted={state.extracted} rawNote={state.note} />
         </div>
       )}
     </div>

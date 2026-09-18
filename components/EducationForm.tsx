@@ -10,6 +10,12 @@ type EducationFormProps = {
 export default function EducationForm({ action, contactId, initialEducation }: EducationFormProps) {
   return (
     <form action={action} className="space-y-4">
+      {/* Carries through an "as written" date (e.g. from Quick Capture) that
+          has no exact date yet, so a routine edit here doesn't silently wipe
+          it. parseEducationInput() only keeps this value when the matching
+          exact date field below is left blank. */}
+      <input type="hidden" name="startDateText" value={initialEducation?.startDateText ?? ""} />
+      <input type="hidden" name="endDateText" value={initialEducation?.endDateText ?? ""} />
       <div>
         <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="school">
           School

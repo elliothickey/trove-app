@@ -11,19 +11,27 @@ function formatMonthYear(dateStr: string): string {
   });
 }
 
+// Falls back to the "as written" text (e.g. from Quick Capture) when there's
+// no exact date to format -- never silently drops a date the user provided.
+function displayDate(exact: string | undefined, text: string | undefined): string | undefined {
+  return exact ? formatMonthYear(exact) : text;
+}
+
 function formatDates(employment: ContactEmployment): string | undefined {
-  const { startDate, endDate, isCurrent } = employment;
+  const { isCurrent } = employment;
+  const start = displayDate(employment.startDate, employment.startDateText);
+  const end = displayDate(employment.endDate, employment.endDateText);
   if (isCurrent) {
-    return startDate ? `${formatMonthYear(startDate)} – Present` : "Present";
+    return start ? `${start} – Present` : "Present";
   }
-  if (startDate && endDate) {
-    return `${formatMonthYear(startDate)} – ${formatMonthYear(endDate)}`;
+  if (start && end) {
+    return `${start} – ${end}`;
   }
-  if (startDate) {
-    return formatMonthYear(startDate);
+  if (start) {
+    return start;
   }
-  if (endDate) {
-    return `Until ${formatMonthYear(endDate)}`;
+  if (end) {
+    return `Until ${end}`;
   }
   return undefined;
 }

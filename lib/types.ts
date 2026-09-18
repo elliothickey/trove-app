@@ -54,6 +54,12 @@ export type ContactEducation = {
   fieldOfStudy?: string;
   startDate?: string;
   endDate?: string;
+  // "As written" fallback for a start/end date that couldn't be captured as
+  // an exact `date` (e.g. "2024" or "Senior year") without inventing detail
+  // the source never stated. Populated only when the corresponding exact
+  // date is absent.
+  startDateText?: string;
+  endDateText?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -64,6 +70,8 @@ export type ContactEducationInput = {
   fieldOfStudy?: string;
   startDate?: string;
   endDate?: string;
+  startDateText?: string;
+  endDateText?: string;
 };
 
 export type ContactEmployment = {
@@ -74,6 +82,8 @@ export type ContactEmployment = {
   startDate?: string;
   endDate?: string;
   isCurrent?: boolean;
+  startDateText?: string;
+  endDateText?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -84,6 +94,8 @@ export type ContactEmploymentInput = {
   startDate?: string;
   endDate?: string;
   isCurrent?: boolean;
+  startDateText?: string;
+  endDateText?: string;
 };
 
 export type ContactLocationKind = "hometown" | "current" | "previous";
