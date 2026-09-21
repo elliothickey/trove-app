@@ -50,6 +50,16 @@ export default function InteractionTimeline({
                   {interaction.notes}
                 </p>
               )}
+              {interaction.rawNotes && (
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-xs font-medium text-gray-500 hover:text-gray-700">
+                    Original note
+                  </summary>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">
+                    {interaction.rawNotes}
+                  </p>
+                </details>
+              )}
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <Link
