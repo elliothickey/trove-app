@@ -1,15 +1,23 @@
+"use client";
+
+import { useActionState } from "react";
 import Link from "next/link";
+import type { ActionFormState } from "@/app/actions";
 import type { ContactEducation } from "@/lib/types";
 
 type EducationFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (prevState: ActionFormState, formData: FormData) => Promise<ActionFormState>;
   contactId: string;
   initialEducation?: ContactEducation;
 };
 
+const initialState: ActionFormState = {};
+
 export default function EducationForm({ action, contactId, initialEducation }: EducationFormProps) {
+  const [state, formAction, isPending] = useActionState(action, initialState);
+
   return (
-    <form action={action} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       {/* Carries through an "as written" date (e.g. from Quick Capture) that
           has no exact date yet, so a routine edit here doesn't silently wipe
           it. parseEducationInput() only keeps this value when the matching
@@ -24,7 +32,7 @@ export default function EducationForm({ action, contactId, initialEducation }: E
           id="school"
           name="school"
           type="text"
-          defaultValue={initialEducation?.school}
+          defaultValue={state.values?.school ?? initialEducation?.school}
           required
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
@@ -39,7 +47,7 @@ export default function EducationForm({ action, contactId, initialEducation }: E
           name="degree"
           type="text"
           placeholder="e.g. B.A."
-          defaultValue={initialEducation?.degree}
+          defaultValue={state.values?.degree ?? initialEducation?.degree}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
       </div>
@@ -52,7 +60,7 @@ export default function EducationForm({ action, contactId, initialEducation }: E
           id="fieldOfStudy"
           name="fieldOfStudy"
           type="text"
-          defaultValue={initialEducation?.fieldOfStudy}
+          defaultValue={state.values?.fieldOfStudy ?? initialEducation?.fieldOfStudy}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
       </div>
@@ -66,7 +74,7 @@ export default function EducationForm({ action, contactId, initialEducation }: E
             id="startDate"
             name="startDate"
             type="date"
-            defaultValue={initialEducation?.startDate}
+            defaultValue={state.values?.startDate ?? initialEducation?.startDate}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
@@ -78,18 +86,25 @@ export default function EducationForm({ action, contactId, initialEducation }: E
             id="endDate"
             name="endDate"
             type="date"
-            defaultValue={initialEducation?.endDate}
+            defaultValue={state.values?.endDate ?? initialEducation?.endDate}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
       </div>
 
+      {state.error && (
+        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {state.error}
+        </p>
+      )}
+
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+          disabled={isPending}
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
         >
-          Save
+          {isPending ? "Saving..." : "Save"}
         </button>
         <Link
           href={`/contacts/${contactId}`}

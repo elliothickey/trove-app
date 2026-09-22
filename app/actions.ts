@@ -29,6 +29,60 @@ import type {
   InteractionType,
 } from "@/lib/types";
 
+// Shared state shape for every create/update form action below, consumed via
+// useActionState() in the matching form component. `error` is always a
+// message that's safe to show verbatim -- see toValidationError() and
+// toDataLayerError(), the only two places that produce one. `values` is the
+// raw submitted form data, echoed back so the form can repopulate itself:
+// React resets a <form action={fn}>'s uncontrolled fields to their current
+// defaultValue whenever the action's transition completes (success or
+// failure alike), so defaultValue must reflect what was just submitted, not
+// the original database values, or a recoverable failure would silently
+// discard the user's edits.
+export type ActionFormState = { error?: string; values?: Record<string, string> };
+
+// Only plain string form fields are echoed back -- never File values, and
+// never React/Next's internal "$ACTION_..." bookkeeping keys (see the
+// installed Next.js forms guide's note on Object.fromEntries(formData)).
+function submittedValues(formData: FormData): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string" && !key.startsWith("$ACTION_")) {
+      values[key] = value;
+    }
+  }
+  return values;
+}
+
+// parse*Input() functions below only ever throw messages we wrote ourselves
+// (e.g. "Name is required"), so they're always safe to surface as-is.
+function toValidationError(err: unknown, formData: FormData): ActionFormState {
+  return {
+    error: err instanceof Error ? err.message : "Invalid input.",
+    values: submittedValues(formData),
+  };
+}
+
+// Data-layer failures (lib/data.ts) can carry raw Supabase/Postgres error
+// text, which must never reach the user. Log the real error for debugging
+// and return a generic, safe message instead -- except "Not authenticated"
+// (thrown by requireUser()), which gets a specific, actionable message so a
+// user whose session expired mid-form knows to sign back in rather than
+// retrying the same failing save indefinitely.
+function toDataLayerError(err: unknown, formData: FormData): ActionFormState {
+  if (err instanceof Error && err.message === "Not authenticated") {
+    return {
+      error: "Your session has expired. Please sign in again, then retry.",
+      values: submittedValues(formData),
+    };
+  }
+  console.error(err);
+  return {
+    error: "Couldn't save your changes. Please try again.",
+    values: submittedValues(formData),
+  };
+}
+
 function parseContactInput(formData: FormData): ContactInput {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
@@ -58,16 +112,47 @@ function parseContactInput(formData: FormData): ContactInput {
   };
 }
 
-export async function createContactAction(formData: FormData) {
-  const input = parseContactInput(formData);
-  const contact = await createContact(input);
+export async function createContactAction(
+  _prevState: ActionFormState,
+  formData: FormData
+): Promise<ActionFormState> {
+  let input: ContactInput;
+  try {
+    input = parseContactInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  let redirectPath: string;
+  try {
+    const contact = await createContact(input);
+    redirectPath = `/contacts/${contact.id}`;
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath("/");
-  redirect(`/contacts/${contact.id}`);
+  redirect(redirectPath);
 }
 
-export async function updateContactAction(id: string, formData: FormData) {
-  const input = parseContactInput(formData);
-  await updateContact(id, input);
+export async function updateContactAction(
+  id: string,
+  _prevState: ActionFormState,
+  formData: FormData
+): Promise<ActionFormState> {
+  let input: ContactInput;
+  try {
+    input = parseContactInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await updateContact(id, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath("/");
   revalidatePath(`/contacts/${id}`);
   redirect(`/contacts/${id}`);
@@ -112,9 +197,24 @@ function parseInteractionInput(formData: FormData): InteractionInput {
   };
 }
 
-export async function createInteractionAction(contactId: string, formData: FormData) {
-  const input = parseInteractionInput(formData);
-  await createInteraction(contactId, input);
+export async function createInteractionAction(
+  contactId: string,
+  _prevState: ActionFormState,
+  formData: FormData
+): Promise<ActionFormState> {
+  let input: InteractionInput;
+  try {
+    input = parseInteractionInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await createInteraction(contactId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }
@@ -122,10 +222,22 @@ export async function createInteractionAction(contactId: string, formData: FormD
 export async function updateInteractionAction(
   contactId: string,
   interactionId: string,
+  _prevState: ActionFormState,
   formData: FormData
-) {
-  const input = parseInteractionInput(formData);
-  await updateInteraction(interactionId, input);
+): Promise<ActionFormState> {
+  let input: InteractionInput;
+  try {
+    input = parseInteractionInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await updateInteraction(interactionId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }
@@ -164,9 +276,24 @@ function parseEmploymentInput(formData: FormData): ContactEmploymentInput {
   };
 }
 
-export async function createEmploymentAction(contactId: string, formData: FormData) {
-  const input = parseEmploymentInput(formData);
-  await createContactEmployment(contactId, input);
+export async function createEmploymentAction(
+  contactId: string,
+  _prevState: ActionFormState,
+  formData: FormData
+): Promise<ActionFormState> {
+  let input: ContactEmploymentInput;
+  try {
+    input = parseEmploymentInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await createContactEmployment(contactId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }
@@ -174,10 +301,22 @@ export async function createEmploymentAction(contactId: string, formData: FormDa
 export async function updateEmploymentAction(
   contactId: string,
   employmentId: string,
+  _prevState: ActionFormState,
   formData: FormData
-) {
-  const input = parseEmploymentInput(formData);
-  await updateContactEmployment(employmentId, input);
+): Promise<ActionFormState> {
+  let input: ContactEmploymentInput;
+  try {
+    input = parseEmploymentInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await updateContactEmployment(employmentId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }
@@ -216,9 +355,24 @@ function parseEducationInput(formData: FormData): ContactEducationInput {
   };
 }
 
-export async function createEducationAction(contactId: string, formData: FormData) {
-  const input = parseEducationInput(formData);
-  await createContactEducation(contactId, input);
+export async function createEducationAction(
+  contactId: string,
+  _prevState: ActionFormState,
+  formData: FormData
+): Promise<ActionFormState> {
+  let input: ContactEducationInput;
+  try {
+    input = parseEducationInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await createContactEducation(contactId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }
@@ -226,10 +380,22 @@ export async function createEducationAction(contactId: string, formData: FormDat
 export async function updateEducationAction(
   contactId: string,
   educationId: string,
+  _prevState: ActionFormState,
   formData: FormData
-) {
-  const input = parseEducationInput(formData);
-  await updateContactEducation(educationId, input);
+): Promise<ActionFormState> {
+  let input: ContactEducationInput;
+  try {
+    input = parseEducationInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await updateContactEducation(educationId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }
@@ -256,9 +422,24 @@ function parseLocationInput(formData: FormData): ContactLocationInput {
   return { location, kind };
 }
 
-export async function createLocationAction(contactId: string, formData: FormData) {
-  const input = parseLocationInput(formData);
-  await createContactLocation(contactId, input);
+export async function createLocationAction(
+  contactId: string,
+  _prevState: ActionFormState,
+  formData: FormData
+): Promise<ActionFormState> {
+  let input: ContactLocationInput;
+  try {
+    input = parseLocationInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await createContactLocation(contactId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }
@@ -266,10 +447,22 @@ export async function createLocationAction(contactId: string, formData: FormData
 export async function updateLocationAction(
   contactId: string,
   locationId: string,
+  _prevState: ActionFormState,
   formData: FormData
-) {
-  const input = parseLocationInput(formData);
-  await updateContactLocation(locationId, input);
+): Promise<ActionFormState> {
+  let input: ContactLocationInput;
+  try {
+    input = parseLocationInput(formData);
+  } catch (err) {
+    return toValidationError(err, formData);
+  }
+
+  try {
+    await updateContactLocation(locationId, input);
+  } catch (err) {
+    return toDataLayerError(err, formData);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
   redirect(`/contacts/${contactId}`);
 }

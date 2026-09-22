@@ -1,25 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
+import type { ActionFormState } from "@/app/actions";
 import type { ContactEmployment } from "@/lib/types";
 
 type EmploymentFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (prevState: ActionFormState, formData: FormData) => Promise<ActionFormState>;
   contactId: string;
   initialEmployment?: ContactEmployment;
 };
+
+const initialState: ActionFormState = {};
 
 export default function EmploymentForm({
   action,
   contactId,
   initialEmployment,
 }: EmploymentFormProps) {
+  const [state, formAction, isPending] = useActionState(action, initialState);
   const [isCurrent, setIsCurrent] = useState(initialEmployment?.isCurrent ?? false);
   const [endDate, setEndDate] = useState(initialEmployment?.endDate ?? "");
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       {/* Carries through an "as written" date (e.g. from Quick Capture) that
           has no exact date yet, so a routine edit here doesn't silently wipe
           it. parseEmploymentInput() only keeps this value when the matching
@@ -34,7 +38,7 @@ export default function EmploymentForm({
           id="company"
           name="company"
           type="text"
-          defaultValue={initialEmployment?.company}
+          defaultValue={state.values?.company ?? initialEmployment?.company}
           required
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
@@ -48,7 +52,7 @@ export default function EmploymentForm({
           id="role"
           name="role"
           type="text"
-          defaultValue={initialEmployment?.role}
+          defaultValue={state.values?.role ?? initialEmployment?.role}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
       </div>
@@ -62,7 +66,7 @@ export default function EmploymentForm({
             id="startDate"
             name="startDate"
             type="date"
-            defaultValue={initialEmployment?.startDate}
+            defaultValue={state.values?.startDate ?? initialEmployment?.startDate}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
@@ -101,12 +105,19 @@ export default function EmploymentForm({
         </label>
       </div>
 
+      {state.error && (
+        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {state.error}
+        </p>
+      )}
+
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+          disabled={isPending}
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
         >
-          Save
+          {isPending ? "Saving..." : "Save"}
         </button>
         <Link
           href={`/contacts/${contactId}`}

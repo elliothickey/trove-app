@@ -1,4 +1,8 @@
+"use client";
+
+import { useActionState } from "react";
 import Link from "next/link";
+import type { ActionFormState } from "@/app/actions";
 import type { ContactLocation, ContactLocationKind } from "@/lib/types";
 
 const LOCATION_KIND_OPTIONS: { value: ContactLocationKind | ""; label: string }[] = [
@@ -9,14 +13,18 @@ const LOCATION_KIND_OPTIONS: { value: ContactLocationKind | ""; label: string }[
 ];
 
 type LocationFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (prevState: ActionFormState, formData: FormData) => Promise<ActionFormState>;
   contactId: string;
   initialLocation?: ContactLocation;
 };
 
+const initialState: ActionFormState = {};
+
 export default function LocationForm({ action, contactId, initialLocation }: LocationFormProps) {
+  const [state, formAction, isPending] = useActionState(action, initialState);
+
   return (
-    <form action={action} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <div>
         <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="location">
           Location
@@ -26,7 +34,7 @@ export default function LocationForm({ action, contactId, initialLocation }: Loc
           name="location"
           type="text"
           placeholder="e.g. Boston, MA"
-          defaultValue={initialLocation?.location}
+          defaultValue={state.values?.location ?? initialLocation?.location}
           required
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
@@ -39,7 +47,7 @@ export default function LocationForm({ action, contactId, initialLocation }: Loc
         <select
           id="kind"
           name="kind"
-          defaultValue={initialLocation?.kind ?? ""}
+          defaultValue={state.values?.kind ?? initialLocation?.kind ?? ""}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         >
           {LOCATION_KIND_OPTIONS.map((option) => (
@@ -50,12 +58,19 @@ export default function LocationForm({ action, contactId, initialLocation }: Loc
         </select>
       </div>
 
+      {state.error && (
+        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {state.error}
+        </p>
+      )}
+
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+          disabled={isPending}
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
         >
-          Save
+          {isPending ? "Saving..." : "Save"}
         </button>
         <Link
           href={`/contacts/${contactId}`}

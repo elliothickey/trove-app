@@ -286,9 +286,19 @@ export async function saveQuickCaptureContactAction(
         // behind for manual review.
       }
     }
+    // Never surface err.message here: it may be a raw Supabase/Postgres
+    // error. Log the real error for debugging and return only a safe,
+    // generic message (or the specific session-expiry message) to the user.
+    console.error(err);
+    if (err instanceof Error && err.message === "Not authenticated") {
+      return {
+        status: "error",
+        error: "Your session has expired. Please sign in again, then retry.",
+      };
+    }
     return {
       status: "error",
-      error: err instanceof Error ? err.message : "Something went wrong while saving.",
+      error: "Couldn't save your changes. Please try again.",
     };
   }
 

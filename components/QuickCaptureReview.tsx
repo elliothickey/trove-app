@@ -260,7 +260,14 @@ export default function QuickCaptureReview({
         return;
       }
 
-      const found = await findExistingContactMatchesAction(trimmedName);
+      let found: Contact[];
+      try {
+        found = await findExistingContactMatchesAction(trimmedName);
+      } catch (err) {
+        console.error(err);
+        setSaveError("Couldn't check for existing contacts. Please try again.");
+        return;
+      }
       setCheckedName(trimmedName);
       if (found.length === 0) {
         setMatches([]);

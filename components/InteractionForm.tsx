@@ -1,4 +1,8 @@
+"use client";
+
+import { useActionState } from "react";
 import Link from "next/link";
+import type { ActionFormState } from "@/app/actions";
 import type { Interaction, InteractionType } from "@/lib/types";
 
 const INTERACTION_TYPE_OPTIONS: { value: InteractionType; label: string }[] = [
@@ -10,10 +14,12 @@ const INTERACTION_TYPE_OPTIONS: { value: InteractionType; label: string }[] = [
 ];
 
 type InteractionFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (prevState: ActionFormState, formData: FormData) => Promise<ActionFormState>;
   contactId: string;
   initialInteraction?: Interaction;
 };
+
+const initialState: ActionFormState = {};
 
 function toDatetimeLocalValue(isoString: string): string {
   const date = new Date(isoString);
@@ -31,12 +37,14 @@ export default function InteractionForm({
   contactId,
   initialInteraction,
 }: InteractionFormProps) {
+  const [state, formAction, isPending] = useActionState(action, initialState);
+
   const defaultOccurredAt = initialInteraction
     ? toDatetimeLocalValue(initialInteraction.occurredAt)
     : toDatetimeLocalValue(new Date().toISOString());
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <div>
         <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="type">
           Type
@@ -44,7 +52,7 @@ export default function InteractionForm({
         <select
           id="type"
           name="type"
-          defaultValue={initialInteraction?.type ?? "meeting"}
+          defaultValue={state.values?.type ?? initialInteraction?.type ?? "meeting"}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         >
           {INTERACTION_TYPE_OPTIONS.map((option) => (
@@ -63,7 +71,7 @@ export default function InteractionForm({
           id="occurredAt"
           name="occurredAt"
           type="datetime-local"
-          defaultValue={defaultOccurredAt}
+          defaultValue={state.values?.occurredAt ?? defaultOccurredAt}
           required
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
@@ -78,7 +86,7 @@ export default function InteractionForm({
           name="location"
           type="text"
           placeholder="e.g. Zoom, Brown campus, McKinsey office"
-          defaultValue={initialInteraction?.location}
+          defaultValue={state.values?.location ?? initialInteraction?.location}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
       </div>
@@ -92,7 +100,7 @@ export default function InteractionForm({
           name="summary"
           type="text"
           placeholder="e.g. Coffee to catch up before her move"
-          defaultValue={initialInteraction?.summary}
+          defaultValue={state.values?.summary ?? initialInteraction?.summary}
           required
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
@@ -106,17 +114,24 @@ export default function InteractionForm({
           id="notes"
           name="notes"
           rows={4}
-          defaultValue={initialInteraction?.notes}
+          defaultValue={state.values?.notes ?? initialInteraction?.notes}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
       </div>
 
+      {state.error && (
+        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {state.error}
+        </p>
+      )}
+
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+          disabled={isPending}
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
         >
-          Save
+          {isPending ? "Saving..." : "Save"}
         </button>
         <Link
           href={`/contacts/${contactId}`}
