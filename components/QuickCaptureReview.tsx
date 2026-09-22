@@ -7,8 +7,11 @@ import type {
   ExtractedEmployment,
   ExtractedLocation,
 } from "@/lib/ai/types";
-import type { ContactLocationKind } from "@/lib/types";
-import { saveQuickCaptureContactAction } from "@/app/quick-capture/actions";
+import type { Contact, ContactLocationKind } from "@/lib/types";
+import {
+  findExistingContactMatchesAction,
+  saveQuickCaptureContactAction,
+} from "@/app/quick-capture/actions";
 
 const LOCATION_KIND_OPTIONS: { value: ContactLocationKind | ""; label: string }[] = [
   { value: "", label: "Unspecified" },
@@ -214,7 +217,36 @@ export default function QuickCaptureReview({
   const [isSaving, startSave] = useTransition();
   const [saveError, setSaveError] = useState<string | undefined>();
 
+  // Duplicate-name confirmation, run once at Save time against the final
+  // edited name -- never while the user is still typing. `matches` is only
+  // ever populated for the exact name that was just checked (`checkedName`);
+  // if the user edits the name afterward, the next Save click re-checks
+  // instead of confirming a stale selection.
+  const [matches, setMatches] = useState<Contact[]>([]);
+  const [checkedName, setCheckedName] = useState<string | undefined>();
+  // "new" (the safe default) or the id of an existing contact the user
+  // explicitly picked. Never defaulted to an existing contact.
+  const [selectedContactId, setSelectedContactId] = useState<string>("new");
+
   const trimmedName = name.trim();
+  const awaitingConfirmation = matches.length > 0 && trimmedName === checkedName;
+
+  async function doSave(existingContactId?: string) {
+    const result = await saveQuickCaptureContactAction({
+      rawNote,
+      name: trimmedName,
+      employment,
+      education,
+      locations,
+      interactionSummary,
+      notes,
+      existingContactId,
+    });
+    // On success this never resolves here -- the action redirects instead.
+    if (result.status === "error") {
+      setSaveError(result.error);
+    }
+  }
 
   // The draft (name/employment/education/locations/etc. state above) is
   // never cleared here -- on error it stays exactly as the user left it so
@@ -223,19 +255,22 @@ export default function QuickCaptureReview({
     if (isSaving) return;
     setSaveError(undefined);
     startSave(async () => {
-      const result = await saveQuickCaptureContactAction({
-        rawNote,
-        name: trimmedName,
-        employment,
-        education,
-        locations,
-        interactionSummary,
-        notes,
-      });
-      // On success this never resolves here -- the action redirects instead.
-      if (result.status === "error") {
-        setSaveError(result.error);
+      if (awaitingConfirmation) {
+        await doSave(selectedContactId === "new" ? undefined : selectedContactId);
+        return;
       }
+
+      const found = await findExistingContactMatchesAction(trimmedName);
+      setCheckedName(trimmedName);
+      if (found.length === 0) {
+        setMatches([]);
+        await doSave(undefined);
+        return;
+      }
+      // Found possible matches -- pause and let the user choose. Nothing is
+      // saved yet, and no match is pre-selected.
+      setMatches(found);
+      setSelectedContactId("new");
     });
   }
 
@@ -360,6 +395,49 @@ export default function QuickCaptureReview({
         />
       </div>
 
+      {awaitingConfirmation && (
+        <div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <p className="text-sm font-medium text-gray-900">
+            You already have {matches.length === 1 ? "a contact" : "contacts"} named &quot;
+            {checkedName}&quot;. Is this the same person?
+          </p>
+          <div className="space-y-2">
+            {matches.map((match) => (
+              <label key={match.id} className="flex items-start gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  name="existingContactMatch"
+                  className="mt-0.5"
+                  checked={selectedContactId === match.id}
+                  onChange={() => setSelectedContactId(match.id)}
+                />
+                <span>
+                  <span className="font-medium text-gray-900">{match.name}</span>
+                  {[match.employer, match.school, match.location].filter(Boolean).length > 0 && (
+                    <span className="text-gray-500">
+                      {" "}
+                      — {[match.employer, match.school, match.location].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="existingContactMatch"
+                className="mt-0.5"
+                checked={selectedContactId === "new"}
+                onChange={() => setSelectedContactId("new")}
+              />
+              <span className="font-medium text-gray-900">
+                This is a different person — create a new contact
+              </span>
+            </label>
+          </div>
+        </div>
+      )}
+
       {saveError && (
         <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
           {saveError}
@@ -374,7 +452,11 @@ export default function QuickCaptureReview({
           title={!trimmedName ? "Add a name before saving" : undefined}
           className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300"
         >
-          {isSaving ? "Saving..." : "Save to CRM"}
+          {isSaving
+            ? "Saving..."
+            : awaitingConfirmation
+              ? "Confirm & Save"
+              : "Save to CRM"}
         </button>
         {!trimmedName && <p className="text-xs text-gray-500">Add a name before saving.</p>}
       </div>

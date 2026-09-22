@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeText } from "@/lib/textMatch";
 import type {
   Contact,
   ContactInput,
@@ -247,6 +248,17 @@ export async function getContact(id: string): Promise<Contact | undefined> {
     throw new Error(error.message);
   }
   return data ? rowToContact(data as ContactRow) : undefined;
+}
+
+// Exact, case-insensitive, whitespace-normalized name match against the
+// caller's own contacts (getContacts() is RLS-scoped). Used by Quick Capture
+// to surface a possible existing contact before creating a new one -- never
+// to merge or attach automatically.
+export async function findContactsByName(name: string): Promise<Contact[]> {
+  const target = normalizeText(name);
+  if (!target) return [];
+  const contacts = await getContacts();
+  return contacts.filter((contact) => normalizeText(contact.name) === target);
 }
 
 export async function createContact(input: ContactInput): Promise<Contact> {

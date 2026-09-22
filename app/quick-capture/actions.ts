@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { extractContactFromNote, ExtractionError } from "@/lib/ai/extractContact";
 import type { ExtractedContact, ExtractedEducation, ExtractedEmployment, ExtractedLocation } from "@/lib/ai/types";
+import { normalizeText } from "@/lib/textMatch";
+import type { Contact, ContactEducation, ContactEmployment, ContactLocation } from "@/lib/types";
 import {
   createContact,
   createContactEducation,
@@ -12,6 +14,11 @@ import {
   createContactLocation,
   createInteraction,
   deleteContact,
+  findContactsByName,
+  getContact,
+  getEducationForContact,
+  getEmploymentForContact,
+  getLocationsForContact,
 } from "@/lib/data";
 
 export type QuickCaptureState =
@@ -73,9 +80,23 @@ export type SaveQuickCaptureInput = {
   locations: ExtractedLocation[];
   interactionSummary: string;
   notes: string;
+  // Set only when the user explicitly picked an existing contact from the
+  // duplicate-name confirmation step -- never inferred or defaulted here.
+  // Always re-validated server-side against the caller's own contacts
+  // (see saveQuickCaptureContactAction) rather than trusted as-is.
+  existingContactId?: string;
 };
 
 export type SaveQuickCaptureResult = { status: "error"; error: string };
+
+// Exact, case-insensitive, whitespace-normalized name match only -- run once,
+// at Save time, against the final edited name. Never fuzzy, never automatic:
+// the caller (QuickCaptureReview) always makes the user choose explicitly
+// between a returned match and "different person" before anything is saved.
+export async function findExistingContactMatchesAction(name: string): Promise<Contact[]> {
+  await requireUser();
+  return findContactsByName(name);
+}
 
 const EXACT_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -87,6 +108,52 @@ function splitDate(value?: string): { exact?: string; text?: string } {
   const trimmed = value?.trim();
   if (!trimmed) return {};
   return EXACT_DATE_RE.test(trimmed) ? { exact: trimmed } : { text: trimmed };
+}
+
+// A single "as displayed" value for a date that may be stored as either an
+// exact `date` column or an "as written" text sibling -- lets an existing DB
+// row and a freshly-split extracted value be compared like-for-like.
+function dateKey(exact?: string | null, text?: string | null): string | undefined {
+  return normalizeText(exact) ?? normalizeText(text);
+}
+
+// Conservative, name-only-plus-populated-fields dedup for structured child
+// records on an EXISTING contact. Two records are only treated as the same
+// fact when every field populated on either side matches (normalized) --
+// any field that differs (e.g. a different role or date range at the same
+// company) means they're kept as separate history, not collapsed. This is
+// intentionally strict: when in doubt, the new record is preserved rather
+// than silently discarded (e.g. Analyst 2015-2017 vs. VP 2022-present at the
+// same company are two rows, not one).
+function isDuplicateEmployment(existing: ContactEmployment, item: ExtractedEmployment): boolean {
+  const start = splitDate(item.startDate);
+  const end = splitDate(item.endDate);
+  return (
+    normalizeText(existing.company) === normalizeText(item.company) &&
+    normalizeText(existing.role) === normalizeText(item.role) &&
+    dateKey(existing.startDate, existing.startDateText) === dateKey(start.exact, start.text) &&
+    dateKey(existing.endDate, existing.endDateText) === dateKey(end.exact, end.text) &&
+    (existing.isCurrent ?? undefined) === (item.isCurrent ?? undefined)
+  );
+}
+
+function isDuplicateEducation(existing: ContactEducation, item: ExtractedEducation): boolean {
+  const start = splitDate(item.startDate);
+  const end = splitDate(item.endDate);
+  return (
+    normalizeText(existing.school) === normalizeText(item.school) &&
+    normalizeText(existing.degree) === normalizeText(item.degree) &&
+    normalizeText(existing.fieldOfStudy) === normalizeText(item.fieldOfStudy) &&
+    dateKey(existing.startDate, existing.startDateText) === dateKey(start.exact, start.text) &&
+    dateKey(existing.endDate, existing.endDateText) === dateKey(end.exact, end.text)
+  );
+}
+
+function isDuplicateLocation(existing: ContactLocation, item: ExtractedLocation): boolean {
+  return (
+    normalizeText(existing.location) === normalizeText(item.location) &&
+    (existing.kind ?? undefined) === (item.kind ?? undefined)
+  );
 }
 
 export async function saveQuickCaptureContactAction(
@@ -107,17 +174,51 @@ export async function saveQuickCaptureContactAction(
   const notes = input.notes.trim();
 
   let contactId: string | undefined;
+  // Only true when THIS call created the contact -- rollback below must
+  // never delete a pre-existing contact the user explicitly chose to attach
+  // to, even if a later step in this same save fails.
+  let createdNewContact = false;
   try {
-    const contact = await createContact({
-      name,
-      tags: [],
-      notes: notes || undefined,
-    });
-    contactId = contact.id;
+    if (input.existingContactId) {
+      // Never trust the id from the client as-is: re-look it up through the
+      // RLS-scoped data layer so a stale or forged id can't attach an
+      // interaction to a contact the caller doesn't own (or that no longer
+      // exists).
+      const existing = await getContact(input.existingContactId);
+      if (!existing) {
+        return {
+          status: "error",
+          error: "That contact could no longer be found. Please try saving again.",
+        };
+      }
+      contactId = existing.id;
+    } else {
+      const contact = await createContact({
+        name,
+        tags: [],
+        notes: notes || undefined,
+      });
+      contactId = contact.id;
+      createdNewContact = true;
+    }
+
+    // Only fetch what's already on the contact when attaching to an existing
+    // one -- a brand-new contact has nothing to dedup against, so every
+    // extracted item is inserted as before.
+    const existingEmployment: ContactEmployment[] = createdNewContact
+      ? []
+      : await getEmploymentForContact(contactId);
+    const existingEducation: ContactEducation[] = createdNewContact
+      ? []
+      : await getEducationForContact(contactId);
+    const existingLocations: ContactLocation[] = createdNewContact
+      ? []
+      : await getLocationsForContact(contactId);
 
     for (const item of input.employment) {
       const company = item.company.trim();
       if (!company) continue;
+      if (existingEmployment.some((existing) => isDuplicateEmployment(existing, item))) continue;
       const start = splitDate(item.startDate);
       const end = splitDate(item.endDate);
       await createContactEmployment(contactId, {
@@ -134,6 +235,7 @@ export async function saveQuickCaptureContactAction(
     for (const item of input.education) {
       const school = item.school.trim();
       if (!school) continue;
+      if (existingEducation.some((existing) => isDuplicateEducation(existing, item))) continue;
       const start = splitDate(item.startDate);
       const end = splitDate(item.endDate);
       await createContactEducation(contactId, {
@@ -150,6 +252,7 @@ export async function saveQuickCaptureContactAction(
     for (const item of input.locations) {
       const location = item.location.trim();
       if (!location) continue;
+      if (existingLocations.some((existing) => isDuplicateLocation(existing, item))) continue;
       await createContactLocation(contactId, {
         location,
         kind: item.kind,
@@ -160,7 +263,9 @@ export async function saveQuickCaptureContactAction(
     // creation time, which lib/data.ts's createInteraction also copies
     // verbatim into the immutable `raw_notes` column -- that's what
     // preserves the original Quick Capture text exactly as submitted,
-    // permanently, even if the interaction's notes are edited later.
+    // permanently, even if the interaction's notes are edited later. This
+    // always runs, regardless of how many (if any) structured records above
+    // were skipped as duplicates.
     await createInteraction(contactId, {
       type: "other",
       occurredAt: new Date().toISOString(),
@@ -170,8 +275,9 @@ export async function saveQuickCaptureContactAction(
   } catch (err) {
     // Best-effort rollback so a retry doesn't create a duplicate contact --
     // the FK `on delete cascade` on the child tables cleans up any partial
-    // employment/education/location/interaction rows too.
-    if (contactId) {
+    // employment/education/location/interaction rows too. Never applies to
+    // an existing contact the user chose to attach to.
+    if (createdNewContact && contactId) {
       try {
         await deleteContact(contactId);
       } catch {
