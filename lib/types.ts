@@ -17,6 +17,7 @@ export type Contact = {
 // list views that shouldn't need to know the resolution hierarchy.
 export type ContactListItem = Contact & {
   subtitle: string;
+  searchText: string;
 };
 
 export type ContactInput = {

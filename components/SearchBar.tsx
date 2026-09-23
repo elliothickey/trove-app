@@ -2,28 +2,17 @@
 
 import { useMemo, useState } from "react";
 import type { ContactListItem } from "@/lib/types";
+import { normalizeText } from "@/lib/textMatch";
 import ContactList from "@/components/ContactList";
 
 export default function SearchBar({ contacts }: { contacts: ContactListItem[] }) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeText(query);
     if (!q) return contacts;
 
-    return contacts.filter((contact) => {
-      const haystack = [
-        contact.name,
-        contact.employer,
-        contact.school,
-        contact.location,
-        ...contact.tags,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(q);
-    });
+    return contacts.filter((contact) => contact.searchText.includes(q));
   }, [contacts, query]);
 
   return (
