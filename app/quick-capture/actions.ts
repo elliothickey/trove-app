@@ -19,6 +19,7 @@ import {
   getEducationForContact,
   getEmploymentForContact,
   getLocationsForContact,
+  updateContact,
 } from "@/lib/data";
 
 export type QuickCaptureState =
@@ -35,6 +36,15 @@ async function requireUser() {
   if (error || !user) {
     throw new Error("Not authenticated");
   }
+}
+
+// Points the user at a new tab so signing back in doesn't navigate away from
+// (and discard) the Quick Capture note/draft still on screen.
+const SESSION_EXPIRED_MESSAGE =
+  "Your session has expired. Sign in again in a new tab, then come back to this tab and try again — nothing here has been lost.";
+
+function isNotAuthenticated(err: unknown): boolean {
+  return err instanceof Error && err.message === "Not authenticated";
 }
 
 function messageForError(error: ExtractionError): string {
@@ -58,13 +68,17 @@ export async function extractQuickCaptureAction(
 
   // Every Quick Capture request must come from an authenticated user, even
   // though proxy.ts already blocks anonymous access to this route -- same
-  // defense-in-depth pattern as requireUser() in lib/data.ts.
-  await requireUser();
-
+  // defense-in-depth pattern as requireUser() in lib/data.ts. Inside the try
+  // so an expired session returns a recoverable error (keeping the note)
+  // instead of throwing to the error page.
   try {
+    await requireUser();
     const extracted = await extractContactFromNote(note);
     return { status: "success", note, extracted };
   } catch (err) {
+    if (isNotAuthenticated(err)) {
+      return { status: "error", note, error: SESSION_EXPIRED_MESSAGE };
+    }
     if (err instanceof ExtractionError) {
       return { status: "error", note, error: messageForError(err) };
     }
@@ -156,11 +170,19 @@ function isDuplicateLocation(existing: ContactLocation, item: ExtractedLocation)
   );
 }
 
+// Appends Quick Capture "Other notes" to an existing contact's notes rather
+// than replacing them. Skipped when that text is already present, so a retry
+// after a later step fails doesn't append it twice.
+function appendContactNotes(existing: string | undefined, addition: string): string | undefined {
+  if (!addition) return undefined;
+  if (!existing?.trim()) return addition;
+  if (normalizeText(existing)?.includes(normalizeText(addition) ?? "")) return undefined;
+  return `${existing.trimEnd()}\n\n${addition}`;
+}
+
 export async function saveQuickCaptureContactAction(
   input: SaveQuickCaptureInput
 ): Promise<SaveQuickCaptureResult> {
-  await requireUser();
-
   const name = input.name.trim();
   if (!name) {
     return { status: "error", error: "Add a name before saving." };
@@ -179,6 +201,8 @@ export async function saveQuickCaptureContactAction(
   // to, even if a later step in this same save fails.
   let createdNewContact = false;
   try {
+    await requireUser();
+
     if (input.existingContactId) {
       // Never trust the id from the client as-is: re-look it up through the
       // RLS-scoped data layer so a stale or forged id can't attach an
@@ -192,6 +216,23 @@ export async function saveQuickCaptureContactAction(
         };
       }
       contactId = existing.id;
+
+      // A new contact gets "Other notes" as its contact notes (below); an
+      // existing one gets them appended to its current notes, so nothing
+      // the user reviewed or typed there is silently dropped.
+      const mergedNotes = appendContactNotes(existing.notes, notes);
+      if (mergedNotes) {
+        await updateContact(existing.id, {
+          name: existing.name,
+          employer: existing.employer,
+          school: existing.school,
+          location: existing.location,
+          tags: existing.tags,
+          email: existing.email,
+          phone: existing.phone,
+          notes: mergedNotes,
+        });
+      }
     } else {
       const contact = await createContact({
         name,
@@ -290,11 +331,8 @@ export async function saveQuickCaptureContactAction(
     // error. Log the real error for debugging and return only a safe,
     // generic message (or the specific session-expiry message) to the user.
     console.error(err);
-    if (err instanceof Error && err.message === "Not authenticated") {
-      return {
-        status: "error",
-        error: "Your session has expired. Please sign in again, then retry.",
-      };
+    if (isNotAuthenticated(err)) {
+      return { status: "error", error: SESSION_EXPIRED_MESSAGE };
     }
     return {
       status: "error",

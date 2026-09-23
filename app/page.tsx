@@ -16,7 +16,31 @@ export default async function HomePage() {
           + New Contact
         </Link>
       </div>
-      <SearchBar contacts={contacts} />
+      {contacts.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-gray-300 px-4 py-10 text-center">
+          <p className="font-medium text-gray-900">No contacts yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
+            Paste a note about someone you&apos;ve met and Quick Capture will pull out the
+            details for you, or add a contact yourself.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/quick-capture"
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+            >
+              Quick Capture
+            </Link>
+            <Link
+              href="/contacts/new"
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Add a contact
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <SearchBar contacts={contacts} />
+      )}
     </main>
   );
 }

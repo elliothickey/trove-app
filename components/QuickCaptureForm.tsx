@@ -1,13 +1,34 @@
 "use client";
 
 import { useActionState } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { extractQuickCaptureAction, type QuickCaptureState } from "@/app/quick-capture/actions";
 import QuickCaptureReview from "@/components/QuickCaptureReview";
 
 const initialState: QuickCaptureState = { status: "idle" };
 
+// Turns a thrown failure (e.g. a dropped network connection) into the same
+// recoverable error state the server action returns, instead of letting it
+// reach the error page and take the pasted note with it.
+async function extractWithRecovery(
+  prevState: QuickCaptureState,
+  formData: FormData
+): Promise<QuickCaptureState> {
+  try {
+    return await extractQuickCaptureAction(prevState, formData);
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error(err);
+    return {
+      status: "error",
+      note: String(formData.get("note") ?? ""),
+      error: "Couldn't reach the server. Check your connection and try again.",
+    };
+  }
+}
+
 export default function QuickCaptureForm() {
-  const [state, formAction, isPending] = useActionState(extractQuickCaptureAction, initialState);
+  const [state, formAction, isPending] = useActionState(extractWithRecovery, initialState);
 
   return (
     <div className="space-y-6">
@@ -21,6 +42,9 @@ export default function QuickCaptureForm() {
             name="note"
             rows={8}
             required
+            // React resets the form after every action, so on a failed
+            // extraction put the submitted note back instead of clearing it.
+            defaultValue={state.status === "error" ? state.note : undefined}
             placeholder="e.g. Met Sarah Chen at a party through James. She's a Brown junior from Hong Kong studying economics. She's interning at Evercore next summer. We talked about skiing."
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
           />

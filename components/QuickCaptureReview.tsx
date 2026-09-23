@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import type {
   ExtractedContact,
   ExtractedEducation,
@@ -232,16 +233,28 @@ export default function QuickCaptureReview({
   const awaitingConfirmation = matches.length > 0 && trimmedName === checkedName;
 
   async function doSave(existingContactId?: string) {
-    const result = await saveQuickCaptureContactAction({
-      rawNote,
-      name: trimmedName,
-      employment,
-      education,
-      locations,
-      interactionSummary,
-      notes,
-      existingContactId,
-    });
+    let result;
+    try {
+      result = await saveQuickCaptureContactAction({
+        rawNote,
+        name: trimmedName,
+        employment,
+        education,
+        locations,
+        interactionSummary,
+        notes,
+        existingContactId,
+      });
+    } catch (err) {
+      // redirect() on a successful save throws a framework control-flow
+      // error -- let it propagate. Anything else (e.g. a dropped network
+      // connection) becomes an inline error so the draft stays on screen
+      // instead of the error page replacing it.
+      unstable_rethrow(err);
+      console.error(err);
+      setSaveError("Couldn't reach the server. Check your connection and try again.");
+      return;
+    }
     // On success this never resolves here -- the action redirects instead.
     if (result.status === "error") {
       setSaveError(result.error);
@@ -265,7 +278,9 @@ export default function QuickCaptureReview({
         found = await findExistingContactMatchesAction(trimmedName);
       } catch (err) {
         console.error(err);
-        setSaveError("Couldn't check for existing contacts. Please try again.");
+        setSaveError(
+          "Couldn't check for existing contacts. Please try again — if your session has expired, sign in again in a new tab first."
+        );
         return;
       }
       setCheckedName(trimmedName);
@@ -442,6 +457,12 @@ export default function QuickCaptureReview({
               </span>
             </label>
           </div>
+          {notes.trim() && (
+            <p className="text-xs text-gray-500">
+              If you pick an existing contact, your &quot;Other notes&quot; will be added to
+              their existing notes.
+            </p>
+          )}
         </div>
       )}
 
