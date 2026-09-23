@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Interaction, InteractionType } from "@/lib/types";
 import DeleteInteractionButton from "@/components/DeleteInteractionButton";
+import LocalDateTime from "@/components/LocalDateTime";
 
 const TYPE_LABELS: Record<InteractionType, string> = {
   meeting: "Meeting",
@@ -9,13 +10,6 @@ const TYPE_LABELS: Record<InteractionType, string> = {
   message: "Message",
   other: "Other",
 };
-
-function formatOccurredAt(isoString: string): string {
-  return new Date(isoString).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 export default function InteractionTimeline({
   contactId,
@@ -41,7 +35,7 @@ export default function InteractionTimeline({
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">
                   {TYPE_LABELS[interaction.type]}
                 </span>
-                <span>{formatOccurredAt(interaction.occurredAt)}</span>
+                <LocalDateTime iso={interaction.occurredAt} />
                 {interaction.location && <span>&middot; {interaction.location}</span>}
               </div>
               <p className="mt-1 text-sm font-medium text-gray-900">{interaction.summary}</p>

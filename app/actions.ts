@@ -166,6 +166,12 @@ export async function deleteContactAction(id: string) {
 
 const INTERACTION_TYPES: InteractionType[] = ["meeting", "call", "email", "message", "other"];
 
+// InteractionForm converts the user's local date/time to an ISO instant in
+// the browser before submitting. Only accept values that carry an explicit
+// timezone (Z or +hh:mm): a timezone-less value would be parsed in the
+// server's timezone, silently shifting the time for anyone not in it.
+const ZONED_TIMESTAMP_RE = /(Z|[+-]\d{2}:?\d{2})$/i;
+
 function parseInteractionInput(formData: FormData): InteractionInput {
   const summary = String(formData.get("summary") ?? "").trim();
   if (!summary) {
@@ -176,7 +182,11 @@ function parseInteractionInput(formData: FormData): InteractionInput {
   if (!occurredAtRaw) {
     throw new Error("Date is required");
   }
-  const occurredAt = new Date(occurredAtRaw).toISOString();
+  const occurredAtDate = new Date(occurredAtRaw);
+  if (!ZONED_TIMESTAMP_RE.test(occurredAtRaw) || Number.isNaN(occurredAtDate.getTime())) {
+    throw new Error("Invalid date. Please reload the page and try again.");
+  }
+  const occurredAt = occurredAtDate.toISOString();
 
   const typeRaw = String(formData.get("type") ?? "");
   const type = INTERACTION_TYPES.includes(typeRaw as InteractionType)

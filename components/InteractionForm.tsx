@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import type { ActionFormState } from "@/app/actions";
 import type { Interaction, InteractionType } from "@/lib/types";
+import { useIsClient } from "@/lib/useIsClient";
 
 const INTERACTION_TYPE_OPTIONS: { value: InteractionType; label: string }[] = [
   { value: "meeting", label: "Meeting" },
@@ -21,6 +22,8 @@ type InteractionFormProps = {
 
 const initialState: ActionFormState = {};
 
+// Browser-local "YYYY-MM-DDTHH:mm" for a datetime-local input. Must only run
+// in the browser: on the server it would use the server's timezone.
 function toDatetimeLocalValue(isoString: string): string {
   const date = new Date(isoString);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -38,13 +41,38 @@ export default function InteractionForm({
   initialInteraction,
 }: InteractionFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const isClient = useIsClient();
 
-  const defaultOccurredAt = initialInteraction
+  const initialOccurredAtLocal = initialInteraction
     ? toDatetimeLocalValue(initialInteraction.occurredAt)
-    : toDatetimeLocalValue(new Date().toISOString());
+    : undefined;
+  const defaultOccurredAtLocal = isClient
+    ? (state.values?.occurredAtLocal ??
+      initialOccurredAtLocal ??
+      toDatetimeLocalValue(new Date().toISOString()))
+    : undefined;
+
+  // The datetime-local input's value has no timezone, and the server may not
+  // share the user's timezone -- so convert it to an unambiguous ISO instant
+  // here in the browser, where it's interpreted in the user's local time,
+  // before the form reaches the server action.
+  function submit(formData: FormData) {
+    const local = String(formData.get("occurredAtLocal") ?? "");
+    if (initialInteraction && local === initialOccurredAtLocal) {
+      // Date/time left unchanged: keep the stored instant exactly, including
+      // any seconds the minute-precision input can't show.
+      formData.set("occurredAt", initialInteraction.occurredAt);
+    } else {
+      const date = new Date(local);
+      if (!Number.isNaN(date.getTime())) {
+        formData.set("occurredAt", date.toISOString());
+      }
+    }
+    formAction(formData);
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={submit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="type">
           Type
@@ -64,14 +92,18 @@ export default function InteractionForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="occurredAt">
+        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="occurredAtLocal">
           Date &amp; time
         </label>
+        {/* Keyed on isClient so it remounts with the browser-local default
+            once hydrated; the server render stays empty and disabled. */}
         <input
-          id="occurredAt"
-          name="occurredAt"
+          key={isClient ? "client" : "server"}
+          id="occurredAtLocal"
+          name="occurredAtLocal"
           type="datetime-local"
-          defaultValue={state.values?.occurredAt ?? defaultOccurredAt}
+          defaultValue={defaultOccurredAtLocal}
+          disabled={!isClient}
           required
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
