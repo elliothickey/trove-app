@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Contact } from "@/lib/types";
+import type { ContactListItem } from "@/lib/types";
 import ContactList from "@/components/ContactList";
 
-export default function SearchBar({ contacts }: { contacts: Contact[] }) {
+export default function SearchBar({ contacts }: { contacts: ContactListItem[] }) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {

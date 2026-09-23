@@ -12,6 +12,13 @@ export type Contact = {
   updatedAt: string;
 };
 
+// A contact plus the display subtitle resolved from its normalized
+// employment/education/location records (see lib/contactSubtitle.ts), for
+// list views that shouldn't need to know the resolution hierarchy.
+export type ContactListItem = Contact & {
+  subtitle: string;
+};
+
 export type ContactInput = {
   name: string;
   employer?: string;

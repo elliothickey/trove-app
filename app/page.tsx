@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { getContacts } from "@/lib/data";
+import { getContactsForList } from "@/lib/data";
 import SearchBar from "@/components/SearchBar";
 
 export default async function HomePage() {
-  const contacts = await getContacts();
+  const contacts = await getContactsForList();
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">

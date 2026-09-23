@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { normalizeText } from "@/lib/textMatch";
+import { resolveContactSubtitle } from "@/lib/contactSubtitle";
 import type {
   Contact,
   ContactInput,
+  ContactListItem,
   ContactEducation,
   ContactEducationInput,
   ContactEmployment,
@@ -248,6 +250,63 @@ export async function getContact(id: string): Promise<Contact | undefined> {
     throw new Error(error.message);
   }
   return data ? rowToContact(data as ContactRow) : undefined;
+}
+
+function groupByContactId<T extends { contactId: string }>(rows: T[]): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const existing = grouped.get(row.contactId);
+    if (existing) {
+      existing.push(row);
+    } else {
+      grouped.set(row.contactId, [row]);
+    }
+  }
+  return grouped;
+}
+
+// Contacts for the list view, each with a `subtitle` resolved from its
+// normalized employment/education/location records. Batch-fetches all three
+// child tables for the whole contact list (one query each, filtered by
+// `contact_id in (...)`) instead of querying per contact.
+export async function getContactsForList(): Promise<ContactListItem[]> {
+  const contacts = await getContacts();
+  if (contacts.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const contactIds = contacts.map((contact) => contact.id);
+
+  const [employmentRes, educationRes, locationRes] = await Promise.all([
+    supabase.from("contact_employment").select("*").in("contact_id", contactIds),
+    supabase.from("contact_education").select("*").in("contact_id", contactIds),
+    supabase.from("contact_locations").select("*").in("contact_id", contactIds),
+  ]);
+  if (employmentRes.error) throw new Error(employmentRes.error.message);
+  if (educationRes.error) throw new Error(educationRes.error.message);
+  if (locationRes.error) throw new Error(locationRes.error.message);
+
+  const employmentByContact = groupByContactId(
+    (employmentRes.data as ContactEmploymentRow[]).map(rowToContactEmployment)
+  );
+  const educationByContact = groupByContactId(
+    (educationRes.data as ContactEducationRow[]).map(rowToContactEducation)
+  );
+  const locationsByContact = groupByContactId(
+    (locationRes.data as ContactLocationRow[]).map(rowToContactLocation)
+  );
+
+  return contacts.map((contact) => ({
+    ...contact,
+    subtitle: resolveContactSubtitle({
+      employment: employmentByContact.get(contact.id) ?? [],
+      education: educationByContact.get(contact.id) ?? [],
+      locations: locationsByContact.get(contact.id) ?? [],
+      legacyEmployer: contact.employer,
+      legacyLocation: contact.location,
+    }),
+  }));
 }
 
 // Exact, case-insensitive, whitespace-normalized name match against the
