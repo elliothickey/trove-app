@@ -1,5 +1,10 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signInAction, signUpAction, signOutAction } from "@/app/login/actions";
+import Alert from "@/components/ui/Alert";
+import Button, { buttonStyles } from "@/components/ui/Button";
+import Field from "@/components/ui/Field";
+import Input from "@/components/ui/Input";
 
 export default async function LoginPage({
   searchParams,
@@ -14,80 +19,63 @@ export default async function LoginPage({
 
   if (user) {
     return (
-      <main className="mx-auto w-full max-w-md flex-1 px-4 py-8">
-        <h1 className="mb-6 text-2xl font-semibold text-gray-900">Account</h1>
-        <p className="text-sm text-gray-700">
-          Signed in as <span className="font-medium">{user.email}</span>
+      <main className="p-6 sm:p-8">
+        <h1 className="text-xl font-semibold tracking-[-0.01em] text-ink">Account</h1>
+        <p className="mt-2 break-words text-sm text-ink-muted">
+          Signed in as <span className="font-medium text-ink">{user.email}</span>
         </p>
-        <form action={signOutAction} className="mt-4">
-          <button
-            type="submit"
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-          >
-            Sign out
-          </button>
-        </form>
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <Link href="/" className={buttonStyles()}>
+            Go to People
+          </Link>
+          <form action={signOutAction}>
+            <Button type="submit" variant="secondary">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Sign in</h1>
+    <main className="p-6 sm:p-8">
+      <h1 className="text-xl font-semibold tracking-[-0.01em] text-ink">Sign in</h1>
+      <p className="mt-1 text-sm text-ink-muted">Welcome back to Trove.</p>
 
       {error && (
-        <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <Alert tone="error" className="mt-5 break-words">
+          {error}
+        </Alert>
       )}
       {checkEmail && (
-        <p className="mb-4 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-700">
+        <Alert tone="info" className="mt-5">
           Check your email to confirm your account before signing in.
-        </p>
+        </Alert>
       )}
 
-      <form action={signInAction} className="space-y-4">
-        <Field label="Email" name="email" type="email" />
-        <Field label="Password" name="password" type="password" />
-        <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-          >
-            Sign in
-          </button>
+      <form action={signInAction} className="mt-6 space-y-4">
+        <Field label="Email" htmlFor="email">
+          <Input id="email" name="email" type="email" required />
+        </Field>
+        <Field label="Password" htmlFor="password">
+          <Input id="password" name="password" type="password" required />
+        </Field>
+        <Button type="submit" className="mt-2 w-full">
+          Sign in
+        </Button>
+        <p className="pt-2 text-center text-[13px] text-ink-muted">
+          New to Trove? Enter an email and password, then{" "}
           <button
             type="submit"
             formAction={signUpAction}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            className="rounded-sm font-medium text-ink underline decoration-line-strong underline-offset-4 transition-colors hover:decoration-ink"
           >
-            Sign up
+            sign up
           </button>
-        </div>
+          .
+        </p>
       </form>
     </main>
-  );
-}
-
-function Field({
-  label,
-  name,
-  type = "text",
-}: {
-  label: string;
-  name: string;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor={name}>
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        required
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-      />
-    </div>
   );
 }

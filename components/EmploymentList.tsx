@@ -2,6 +2,12 @@ import Link from "next/link";
 import type { ContactEmployment } from "@/lib/types";
 import { deleteEmploymentAction } from "@/app/actions";
 import DeleteRecordButton from "@/components/DeleteRecordButton";
+import {
+  ProfileEmpty,
+  recordControlsStyles,
+  recordEditLinkStyles,
+} from "@/components/ProfileSection";
+import Tag from "@/components/ui/Tag";
 
 function formatMonthYear(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString(undefined, {
@@ -44,32 +50,28 @@ export default function EmploymentList({
   employment: ContactEmployment[];
 }) {
   if (employment.length === 0) {
-    return <p className="text-sm text-gray-500">No employment added yet.</p>;
+    return <ProfileEmpty>No employment added yet.</ProfileEmpty>;
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-4">
       {employment.map((item) => {
         const dates = formatDates(item);
         return (
-          <li key={item.id} className="rounded-lg border border-gray-200 p-4">
+          <li key={item.id} className="group">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-gray-900">{item.company}</p>
-                  {item.isCurrent && (
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                      Current
-                    </span>
-                  )}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <p className="text-sm font-medium text-ink">{item.company}</p>
+                  {item.isCurrent && <Tag>Current</Tag>}
                 </div>
-                {item.role && <p className="text-sm text-gray-600">{item.role}</p>}
-                {dates && <p className="mt-1 text-xs text-gray-500">{dates}</p>}
+                {item.role && <p className="mt-0.5 text-[13px] text-ink-muted">{item.role}</p>}
+                {dates && <p className="mt-0.5 text-xs text-ink-subtle">{dates}</p>}
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className={recordControlsStyles}>
                 <Link
                   href={`/contacts/${contactId}/employment/${item.id}/edit`}
-                  className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                  className={recordEditLinkStyles}
                 >
                   Edit
                 </Link>

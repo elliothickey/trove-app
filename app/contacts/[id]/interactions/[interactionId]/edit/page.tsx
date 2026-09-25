@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getContact, getInteraction } from "@/lib/data";
 import { updateInteractionAction } from "@/app/actions";
 import InteractionForm from "@/components/InteractionForm";
+import FormPage from "@/components/FormPage";
 
 export default async function EditInteractionPage({
   params,
@@ -19,15 +20,16 @@ export default async function EditInteractionPage({
   const boundUpdateAction = updateInteractionAction.bind(null, id, interactionId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-        Edit Interaction with {contact.name}
-      </h1>
+    <FormPage
+      title="Edit interaction"
+      backHref={`/contacts/${id}`}
+      backLabel={`Back to ${contact.name}`}
+    >
       <InteractionForm
         action={boundUpdateAction}
         contactId={id}
         initialInteraction={interaction}
       />
-    </main>
+    </FormPage>
   );
 }

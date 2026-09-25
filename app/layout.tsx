@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import AppHeader from "@/components/AppHeader";
+import AppShell from "@/components/shell/AppShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal CRM (Local)",
-  description: "A local, private personal contact manager.",
+  title: "Trove",
+  description: "A private memory for the people in your life.",
 };
 
 export default function RootLayout({
@@ -28,9 +28,8 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
-        <AppHeader />
-        {children}
+      <body className="flex min-h-full flex-col bg-canvas font-sans text-ink">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

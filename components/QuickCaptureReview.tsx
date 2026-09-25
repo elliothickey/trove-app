@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { unstable_rethrow } from "next/navigation";
 import type {
   ExtractedContact,
@@ -13,6 +13,12 @@ import {
   findExistingContactMatchesAction,
   saveQuickCaptureContactAction,
 } from "@/app/quick-capture/actions";
+import Alert from "@/components/ui/Alert";
+import Avatar from "@/components/ui/Avatar";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { PlusIcon } from "@/components/ui/icons";
+import { controlHeight, controlStyles } from "@/components/ui/Input";
 
 const LOCATION_KIND_OPTIONS: { value: ContactLocationKind | ""; label: string }[] = [
   { value: "", label: "Unspecified" },
@@ -20,6 +26,48 @@ const LOCATION_KIND_OPTIONS: { value: ContactLocationKind | ""; label: string }[
   { value: "current", label: "Current" },
   { value: "previous", label: "Previous" },
 ];
+
+const labelStyles = "mb-1.5 block text-xs font-medium text-ink-muted";
+
+// Groups one kind of extracted detail under a heading, with an optional
+// action (e.g. "Add employment") on the right.
+function ReviewSection({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          {description && <p className="mt-0.5 text-xs text-ink-muted">{description}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+function AddButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <Button variant="ghost" size="sm" onClick={onClick} className="-mr-2 -mt-1.5">
+      <PlusIcon className="size-3.5" />
+      {children}
+    </Button>
+  );
+}
+
+function EmptyNote({ children }: { children: ReactNode }) {
+  return <p className="text-sm text-ink-subtle">{children}</p>;
+}
 
 // Extracted dates may be exact ("2024-06-01"), coarse ("2024" or "Summer
 // 2024"), or absent -- never invented. A native <input type="date"> would
@@ -41,14 +89,14 @@ function DateField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1 text-gray-500">{label}</label>
+      <label className={labelStyles}>{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         placeholder="e.g. 2024 or 2024-06"
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+        className={`${controlStyles} ${controlHeight}`}
       />
     </div>
   );
@@ -59,21 +107,23 @@ function TextField({
   value,
   onChange,
   placeholder,
+  inputClassName = controlHeight,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  inputClassName?: string;
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1 text-gray-500">{label}</label>
+      <label className={labelStyles}>{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+        className={`${controlStyles} ${inputClassName}`}
       />
     </div>
   );
@@ -84,7 +134,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="text-xs font-medium text-red-600 hover:text-red-800"
+      className="rounded-sm text-xs font-medium text-ink-subtle transition-colors hover:text-danger"
     >
       Remove
     </button>
@@ -101,12 +151,12 @@ function EmploymentRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="space-y-3 rounded-lg border border-gray-200 p-3">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-3 py-4 first:pt-0 last:pb-0">
+      <div className="grid gap-3 sm:grid-cols-2">
         <TextField label="Company" value={item.company} onChange={(v) => onChange({ company: v })} />
         <TextField label="Role" value={item.role ?? ""} onChange={(v) => onChange({ role: v })} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <DateField label="Start date" value={item.startDate ?? ""} onChange={(v) => onChange({ startDate: v })} />
         <DateField
           label="End date"
@@ -116,7 +166,7 @@ function EmploymentRow({
         />
       </div>
       <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm text-gray-700">
+        <label className="flex items-center gap-2 text-sm text-ink">
           <input
             type="checkbox"
             checked={item.isCurrent ?? false}
@@ -126,7 +176,7 @@ function EmploymentRow({
                 endDate: e.target.checked ? "" : item.endDate,
               })
             }
-            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-2 focus:ring-gray-400"
+            className="size-4 accent-ink"
           />
           Current job
         </label>
@@ -146,9 +196,9 @@ function EducationRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+    <div className="space-y-3 py-4 first:pt-0 last:pb-0">
       <TextField label="School" value={item.school} onChange={(v) => onChange({ school: v })} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <TextField label="Degree" value={item.degree ?? ""} onChange={(v) => onChange({ degree: v })} />
         <TextField
           label="Field of study"
@@ -156,7 +206,7 @@ function EducationRow({
           onChange={(v) => onChange({ fieldOfStudy: v })}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <DateField label="Start date" value={item.startDate ?? ""} onChange={(v) => onChange({ startDate: v })} />
         <DateField label="End date" value={item.endDate ?? ""} onChange={(v) => onChange({ endDate: v })} />
       </div>
@@ -177,16 +227,16 @@ function LocationRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+    <div className="space-y-3 py-4 first:pt-0 last:pb-0">
       <TextField label="Location" value={item.location} onChange={(v) => onChange({ location: v })} />
       <div>
-        <label className="block text-xs font-medium mb-1 text-gray-500">Type</label>
+        <label className={labelStyles}>Type</label>
         <select
           value={item.kind ?? ""}
           onChange={(e) =>
             onChange({ kind: (e.target.value || undefined) as ContactLocationKind | undefined })
           }
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+          className={`${controlStyles} ${controlHeight}`}
         >
           {LOCATION_KIND_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -305,30 +355,52 @@ export default function QuickCaptureReview({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-gray-500">
-          Review &amp; edit, then save to your contacts
+    <div className="space-y-4">
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold tracking-[-0.01em] text-ink">
+          Here&apos;s what Trove understood
         </h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          Adjust anything that&apos;s off. Nothing is saved until you confirm.
+        </p>
       </div>
 
-      <TextField label="Name" value={name} onChange={setName} placeholder="Full name" />
-
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-medium text-gray-500">Employment</h3>
-          <button
-            type="button"
-            onClick={() => setEmployment((prev) => [...prev, { company: "" }])}
-            className="text-xs font-medium text-gray-600 hover:text-gray-900"
-          >
-            + Add employment
-          </button>
+      <ReviewSection title="Person">
+        <div className="flex items-start gap-4">
+          <Avatar name={name || "?"} className="mt-6 size-11 text-sm" />
+          <div className="min-w-0 flex-1 space-y-4">
+            <TextField
+              label="Name"
+              value={name}
+              onChange={setName}
+              placeholder="Full name"
+              inputClassName="h-10 text-base font-medium sm:text-[15px]"
+            />
+            <div>
+              <label className={labelStyles}>Other notes</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className={`${controlStyles} leading-relaxed`}
+              />
+            </div>
+          </div>
         </div>
+      </ReviewSection>
+
+      <ReviewSection
+        title="Employment"
+        action={
+          <AddButton onClick={() => setEmployment((prev) => [...prev, { company: "" }])}>
+            Add employment
+          </AddButton>
+        }
+      >
         {employment.length === 0 ? (
-          <p className="text-sm text-gray-500">No employment records.</p>
+          <EmptyNote>No employment records.</EmptyNote>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-line">
             {employment.map((item, index) => (
               <EmploymentRow
                 key={index}
@@ -339,23 +411,20 @@ export default function QuickCaptureReview({
             ))}
           </div>
         )}
-      </div>
+      </ReviewSection>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-medium text-gray-500">Education</h3>
-          <button
-            type="button"
-            onClick={() => setEducation((prev) => [...prev, { school: "" }])}
-            className="text-xs font-medium text-gray-600 hover:text-gray-900"
-          >
-            + Add education
-          </button>
-        </div>
+      <ReviewSection
+        title="Education"
+        action={
+          <AddButton onClick={() => setEducation((prev) => [...prev, { school: "" }])}>
+            Add education
+          </AddButton>
+        }
+      >
         {education.length === 0 ? (
-          <p className="text-sm text-gray-500">No education records.</p>
+          <EmptyNote>No education records.</EmptyNote>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-line">
             {education.map((item, index) => (
               <EducationRow
                 key={index}
@@ -366,23 +435,20 @@ export default function QuickCaptureReview({
             ))}
           </div>
         )}
-      </div>
+      </ReviewSection>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-medium text-gray-500">Locations</h3>
-          <button
-            type="button"
-            onClick={() => setLocations((prev) => [...prev, { location: "" }])}
-            className="text-xs font-medium text-gray-600 hover:text-gray-900"
-          >
-            + Add location
-          </button>
-        </div>
+      <ReviewSection
+        title="Locations"
+        action={
+          <AddButton onClick={() => setLocations((prev) => [...prev, { location: "" }])}>
+            Add location
+          </AddButton>
+        }
+      >
         {locations.length === 0 ? (
-          <p className="text-sm text-gray-500">No locations.</p>
+          <EmptyNote>No locations.</EmptyNote>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-line">
             {locations.map((item, index) => (
               <LocationRow
                 key={index}
@@ -393,50 +459,50 @@ export default function QuickCaptureReview({
             ))}
           </div>
         )}
-      </div>
+      </ReviewSection>
 
-      <div>
-        <label className="block text-xs font-medium mb-1 text-gray-500">
-          How you met / context
-        </label>
+      <ReviewSection
+        title="Interaction"
+        description="Saved to their timeline, along with your original note."
+      >
+        <label className={labelStyles}>How you met / context</label>
         <textarea
           value={interactionSummary}
           onChange={(e) => setInteractionSummary(e.target.value)}
           rows={2}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+          className={`${controlStyles} leading-relaxed`}
         />
-      </div>
+      </ReviewSection>
 
-      <div>
-        <label className="block text-xs font-medium mb-1 text-gray-500">Other notes</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-        />
-      </div>
+      <ReviewSection title="Original note" description="Kept exactly as you wrote it.">
+        <p className="whitespace-pre-wrap rounded-control bg-sunken px-4 py-3 text-sm leading-relaxed text-ink-muted">
+          {rawNote}
+        </p>
+      </ReviewSection>
 
       {awaitingConfirmation && (
-        <div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-gray-900">
-            You already have {matches.length === 1 ? "a contact" : "contacts"} named &quot;
-            {checkedName}&quot;. Is this the same person?
+        <div className="space-y-3 rounded-card border border-[#e6d7b3] bg-[#fbf6e9] p-5">
+          <p className="text-sm font-medium text-ink">
+            You already have {matches.length === 1 ? "someone" : "people"} named &quot;
+            {checkedName}&quot; in Trove. Is this the same person?
           </p>
           <div className="space-y-2">
             {matches.map((match) => (
-              <label key={match.id} className="flex items-start gap-2 text-sm text-gray-700">
+              <label
+                key={match.id}
+                className="flex cursor-pointer items-start gap-3 rounded-control border border-line bg-surface px-3 py-2.5 text-sm text-ink-muted transition-colors hover:border-line-strong has-checked:border-ink-subtle"
+              >
                 <input
                   type="radio"
                   name="existingContactMatch"
-                  className="mt-0.5"
+                  className="mt-0.5 accent-ink"
                   checked={selectedContactId === match.id}
                   onChange={() => setSelectedContactId(match.id)}
                 />
                 <span>
-                  <span className="font-medium text-gray-900">{match.name}</span>
+                  <span className="font-medium text-ink">{match.name}</span>
                   {[match.employer, match.school, match.location].filter(Boolean).length > 0 && (
-                    <span className="text-gray-500">
+                    <span className="text-ink-muted">
                       {" "}
                       — {[match.employer, match.school, match.location].filter(Boolean).join(" · ")}
                     </span>
@@ -444,49 +510,43 @@ export default function QuickCaptureReview({
                 </span>
               </label>
             ))}
-            <label className="flex items-start gap-2 text-sm text-gray-700">
+            <label className="flex cursor-pointer items-start gap-3 rounded-control border border-line bg-surface px-3 py-2.5 text-sm text-ink-muted transition-colors hover:border-line-strong has-checked:border-ink-subtle">
               <input
                 type="radio"
                 name="existingContactMatch"
-                className="mt-0.5"
+                className="mt-0.5 accent-ink"
                 checked={selectedContactId === "new"}
                 onChange={() => setSelectedContactId("new")}
               />
-              <span className="font-medium text-gray-900">
-                This is a different person — create a new contact
+              <span className="font-medium text-ink">
+                This is a different person — add them as someone new
               </span>
             </label>
           </div>
           {notes.trim() && (
-            <p className="text-xs text-gray-500">
-              If you pick an existing contact, your &quot;Other notes&quot; will be added to
-              their existing notes.
+            <p className="text-xs text-ink-muted">
+              If you pick someone already in Trove, your &quot;Other notes&quot; will be added
+              to their existing notes.
             </p>
           )}
         </div>
       )}
 
-      {saveError && (
-        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {saveError}
-        </p>
-      )}
+      {saveError && <Alert tone="error">{saveError}</Alert>}
 
-      <div className="flex items-center gap-3 border-t border-gray-200 pt-4">
-        <button
-          type="button"
+      <div className="flex items-center gap-3 pt-4">
+        <Button
           onClick={handleSave}
           disabled={!trimmedName || isSaving}
           title={!trimmedName ? "Add a name before saving" : undefined}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300"
         >
           {isSaving
             ? "Saving..."
             : awaitingConfirmation
               ? "Confirm & Save"
-              : "Save to CRM"}
-        </button>
-        {!trimmedName && <p className="text-xs text-gray-500">Add a name before saving.</p>}
+              : "Save to Trove"}
+        </Button>
+        {!trimmedName && <p className="text-xs text-ink-muted">Add a name before saving.</p>}
       </div>
     </div>
   );

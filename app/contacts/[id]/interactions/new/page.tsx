@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getContact } from "@/lib/data";
 import { createInteractionAction } from "@/app/actions";
 import InteractionForm from "@/components/InteractionForm";
+import FormPage from "@/components/FormPage";
 
 export default async function NewInteractionPage({
   params,
@@ -18,11 +19,12 @@ export default async function NewInteractionPage({
   const boundCreateAction = createInteractionAction.bind(null, id);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-        Log Interaction with {contact.name}
-      </h1>
+    <FormPage
+      title="Log interaction"
+      backHref={`/contacts/${id}`}
+      backLabel={`Back to ${contact.name}`}
+    >
       <InteractionForm action={boundCreateAction} contactId={id} />
-    </main>
+    </FormPage>
   );
 }

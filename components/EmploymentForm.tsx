@@ -1,9 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Link from "next/link";
 import type { ActionFormState } from "@/app/actions";
 import type { ContactEmployment } from "@/lib/types";
+import FormActions from "@/components/FormActions";
+import Alert from "@/components/ui/Alert";
+import Field from "@/components/ui/Field";
+import Input from "@/components/ui/Input";
 
 type EmploymentFormProps = {
   action: (prevState: ActionFormState, formData: FormData) => Promise<ActionFormState>;
@@ -23,70 +26,54 @@ export default function EmploymentForm({
   const [endDate, setEndDate] = useState(initialEmployment?.endDate ?? "");
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       {/* Carries through an "as written" date (e.g. from Quick Capture) that
           has no exact date yet, so a routine edit here doesn't silently wipe
           it. parseEmploymentInput() only keeps this value when the matching
           exact date field above is left blank. */}
       <input type="hidden" name="startDateText" value={initialEmployment?.startDateText ?? ""} />
       <input type="hidden" name="endDateText" value={initialEmployment?.endDateText ?? ""} />
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="company">
-          Company
-        </label>
-        <input
+      <Field label="Company" htmlFor="company">
+        <Input
           id="company"
           name="company"
           type="text"
           defaultValue={state.values?.company ?? initialEmployment?.company}
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="role">
-          Role
-        </label>
-        <input
+      <Field label="Role" htmlFor="role">
+        <Input
           id="role"
           name="role"
           type="text"
           defaultValue={state.values?.role ?? initialEmployment?.role}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
-      </div>
+      </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="startDate">
-            Start date
-          </label>
-          <input
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
+        <Field label="Start date" htmlFor="startDate">
+          <Input
             id="startDate"
             name="startDate"
             type="date"
             defaultValue={state.values?.startDate ?? initialEmployment?.startDate}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="endDate">
-            End date
-          </label>
-          <input
+        </Field>
+        <Field label="End date" htmlFor="endDate">
+          <Input
             id="endDate"
             name="endDate"
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             disabled={isCurrent}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
           />
-        </div>
+        </Field>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <input
           id="isCurrent"
           name="isCurrent"
@@ -98,34 +85,16 @@ export default function EmploymentForm({
               setEndDate("");
             }
           }}
-          className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-2 focus:ring-gray-400"
+          className="size-4 accent-ink"
         />
-        <label className="text-sm text-gray-700" htmlFor="isCurrent">
+        <label className="text-sm text-ink" htmlFor="isCurrent">
           This is their current job
         </label>
       </div>
 
-      {state.error && (
-        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Alert tone="error">{state.error}</Alert>}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          {isPending ? "Saving..." : "Save"}
-        </button>
-        <Link
-          href={`/contacts/${contactId}`}
-          className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-        >
-          Cancel
-        </Link>
-      </div>
+      <FormActions isPending={isPending} cancelHref={`/contacts/${contactId}`} />
     </form>
   );
 }

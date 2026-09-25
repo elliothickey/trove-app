@@ -2,6 +2,11 @@ import Link from "next/link";
 import type { ContactEducation } from "@/lib/types";
 import { deleteEducationAction } from "@/app/actions";
 import DeleteRecordButton from "@/components/DeleteRecordButton";
+import {
+  ProfileEmpty,
+  recordControlsStyles,
+  recordEditLinkStyles,
+} from "@/components/ProfileSection";
 
 function formatMonthYear(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString(undefined, {
@@ -40,26 +45,26 @@ export default function EducationList({
   education: ContactEducation[];
 }) {
   if (education.length === 0) {
-    return <p className="text-sm text-gray-500">No education added yet.</p>;
+    return <ProfileEmpty>No education added yet.</ProfileEmpty>;
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-4">
       {education.map((item) => {
         const dates = formatDates(item);
         const subtitle = [item.degree, item.fieldOfStudy].filter(Boolean).join(", ");
         return (
-          <li key={item.id} className="rounded-lg border border-gray-200 p-4">
+          <li key={item.id} className="group">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{item.school}</p>
-                {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
-                {dates && <p className="mt-1 text-xs text-gray-500">{dates}</p>}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink">{item.school}</p>
+                {subtitle && <p className="mt-0.5 text-[13px] text-ink-muted">{subtitle}</p>}
+                {dates && <p className="mt-0.5 text-xs text-ink-subtle">{dates}</p>}
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className={recordControlsStyles}>
                 <Link
                   href={`/contacts/${contactId}/education/${item.id}/edit`}
-                  className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                  className={recordEditLinkStyles}
                 >
                   Edit
                 </Link>

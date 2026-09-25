@@ -1,43 +1,45 @@
 import Link from "next/link";
 import { getContactsForList } from "@/lib/data";
 import SearchBar from "@/components/SearchBar";
+import { buttonStyles } from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
+import { CaptureIcon, PlusIcon } from "@/components/ui/icons";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default async function HomePage() {
   const contacts = await getContactsForList();
+  const count = contacts.length;
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Contacts</h1>
-        <Link
-          href="/contacts/new"
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-        >
-          + New Contact
-        </Link>
-      </div>
-      {contacts.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 px-4 py-10 text-center">
-          <p className="font-medium text-gray-900">No contacts yet</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
-            Paste a note about someone you&apos;ve met and Quick Capture will pull out the
-            details for you, or add a contact yourself.
-          </p>
-          <div className="mt-5 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/quick-capture"
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-            >
-              Quick Capture
-            </Link>
-            <Link
-              href="/contacts/new"
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              Add a contact
-            </Link>
-          </div>
-        </div>
+    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-8 sm:py-12">
+      <PageHeader
+        title="People"
+        description={
+          count > 0 ? `${count} ${count === 1 ? "person" : "people"} in your world` : undefined
+        }
+        actions={
+          <Link href="/contacts/new" className={buttonStyles()}>
+            <PlusIcon />
+            Add person
+          </Link>
+        }
+      />
+      {count === 0 ? (
+        <EmptyState
+          title="Start with someone you've met"
+          description="Paste a quick note about them and Quick Capture will pull out the details, or add them yourself."
+          actions={
+            <>
+              <Link href="/quick-capture" className={buttonStyles()}>
+                <CaptureIcon />
+                Quick Capture
+              </Link>
+              <Link href="/contacts/new" className={buttonStyles({ variant: "secondary" })}>
+                Add a person
+              </Link>
+            </>
+          }
+        />
       ) : (
         <SearchBar contacts={contacts} />
       )}

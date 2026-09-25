@@ -1,26 +1,87 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Trove design tokens.
+ *
+ * Light mode only for now. Semantic tokens (canvas, surface, ink, line, ...)
+ * are what new UI should reach for. The gray scale is re-tinted to a warm
+ * neutral so screens still written against gray-* utilities sit comfortably
+ * on the warm canvas until they are redesigned.
+ */
+@theme {
+  /* Surfaces */
+  --color-canvas: #faf9f7;
+  --color-surface: #ffffff;
+  --color-sunken: #f3f2ef;
+
+  /* Text */
+  --color-ink: #1c1b19;
+  --color-ink-muted: #6b6863;
+  --color-ink-subtle: #9c988f;
+
+  /* Borders */
+  --color-line: #eae8e3;
+  --color-line-strong: #d9d6d0;
+
+  /* Status */
+  --color-danger: #b42318;
+  --color-danger-soft: #fdf3f2;
+  --color-danger-line: #f1c9c4;
+  --color-success: #2f6b47;
+  --color-success-soft: #f2f7f3;
+  --color-success-line: #c9dfd0;
+  --color-info: #4a4843;
+  --color-info-soft: #f5f4f1;
+  --color-info-line: #e2dfd9;
+
+  /* Warm neutral gray scale (overrides Tailwind's cool gray) */
+  --color-gray-50: #faf9f7;
+  --color-gray-100: #f3f2ef;
+  --color-gray-200: #e7e5e1;
+  --color-gray-300: #d5d2cc;
+  --color-gray-400: #a8a49d;
+  --color-gray-500: #7c7872;
+  --color-gray-600: #5e5b56;
+  --color-gray-700: #45423e;
+  --color-gray-800: #2d2b28;
+  --color-gray-900: #1c1b19;
+  --color-gray-950: #11100f;
+
+  /* Radii */
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+
+  /* Elevation: kept deliberately faint */
+  --shadow-xs: 0 1px 2px 0 rgb(28 27 25 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(28 27 25 / 0.06), 0 1px 2px -1px rgb(28 27 25 / 0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-ink) 14%, transparent);
+  }
+
+  /* Consistent keyboard focus for links and buttons. Inputs define their
+     own focus ring via utilities, which take precedence over this layer. */
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-ink) 55%, transparent);
+    outline-offset: 2px;
+  }
 }

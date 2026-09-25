@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getContact, getContactEmployment } from "@/lib/data";
 import { updateEmploymentAction } from "@/app/actions";
 import EmploymentForm from "@/components/EmploymentForm";
+import FormPage from "@/components/FormPage";
 
 export default async function EditEmploymentPage({
   params,
@@ -19,11 +20,12 @@ export default async function EditEmploymentPage({
   const boundUpdateAction = updateEmploymentAction.bind(null, id, employmentId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-        Edit Employment for {contact.name}
-      </h1>
+    <FormPage
+      title="Edit employment"
+      backHref={`/contacts/${id}`}
+      backLabel={`Back to ${contact.name}`}
+    >
       <EmploymentForm action={boundUpdateAction} contactId={id} initialEmployment={employment} />
-    </main>
+    </FormPage>
   );
 }

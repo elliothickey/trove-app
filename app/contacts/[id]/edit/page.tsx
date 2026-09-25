@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getContact } from "@/lib/data";
 import { updateContactAction } from "@/app/actions";
 import ContactForm from "@/components/ContactForm";
+import FormPage from "@/components/FormPage";
 
 export default async function EditContactPage({
   params,
@@ -18,9 +19,12 @@ export default async function EditContactPage({
   const boundUpdateAction = updateContactAction.bind(null, id);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Edit Contact</h1>
+    <FormPage
+      title="Edit person"
+      backHref={`/contacts/${id}`}
+      backLabel={`Back to ${contact.name}`}
+    >
       <ContactForm action={boundUpdateAction} initialContact={contact} />
-    </main>
+    </FormPage>
   );
 }

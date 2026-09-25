@@ -1,9 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import type { ActionFormState } from "@/app/actions";
 import type { Contact } from "@/lib/types";
+import FormActions from "@/components/FormActions";
+import Alert from "@/components/ui/Alert";
+import Field from "@/components/ui/Field";
+import Input from "@/components/ui/Input";
+import Textarea from "@/components/ui/Textarea";
 
 type ContactFormProps = {
   action: (prevState: ActionFormState, formData: FormData) => Promise<ActionFormState>;
@@ -16,95 +20,80 @@ export default function ContactForm({ action, initialContact }: ContactFormProps
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   return (
-    <form action={formAction} className="space-y-4">
-      <Field label="Name" name="name" defaultValue={state.values?.name ?? initialContact?.name} required />
-      <Field
-        label="Employer"
-        name="employer"
-        defaultValue={state.values?.employer ?? initialContact?.employer}
-      />
-      <Field label="School" name="school" defaultValue={state.values?.school ?? initialContact?.school} />
-      <Field
-        label="Location"
-        name="location"
-        defaultValue={state.values?.location ?? initialContact?.location}
-      />
-      <Field
-        label="Tags (comma separated)"
-        name="tags"
-        defaultValue={state.values?.tags ?? initialContact?.tags.join(", ")}
-      />
-      <Field
-        label="Email"
-        name="email"
-        type="email"
-        defaultValue={state.values?.email ?? initialContact?.email}
-      />
-      <Field label="Phone" name="phone" defaultValue={state.values?.phone ?? initialContact?.phone} />
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="notes">
-          Notes
-        </label>
-        <textarea
+    <form action={formAction} className="space-y-5">
+      <Field label="Name" htmlFor="name">
+        <Input
+          id="name"
+          name="name"
+          type="text"
+          defaultValue={state.values?.name ?? initialContact?.name}
+          required
+        />
+      </Field>
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
+        <Field label="Employer" htmlFor="employer">
+          <Input
+            id="employer"
+            name="employer"
+            type="text"
+            defaultValue={state.values?.employer ?? initialContact?.employer}
+          />
+        </Field>
+        <Field label="School" htmlFor="school">
+          <Input
+            id="school"
+            name="school"
+            type="text"
+            defaultValue={state.values?.school ?? initialContact?.school}
+          />
+        </Field>
+      </div>
+      <Field label="Location" htmlFor="location">
+        <Input
+          id="location"
+          name="location"
+          type="text"
+          defaultValue={state.values?.location ?? initialContact?.location}
+        />
+      </Field>
+      <Field label="Tags" htmlFor="tags" hint="Separate tags with commas.">
+        <Input
+          id="tags"
+          name="tags"
+          type="text"
+          defaultValue={state.values?.tags ?? initialContact?.tags.join(", ")}
+        />
+      </Field>
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
+        <Field label="Email" htmlFor="email">
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            defaultValue={state.values?.email ?? initialContact?.email}
+          />
+        </Field>
+        <Field label="Phone" htmlFor="phone">
+          <Input
+            id="phone"
+            name="phone"
+            type="text"
+            defaultValue={state.values?.phone ?? initialContact?.phone}
+          />
+        </Field>
+      </div>
+      <Field label="Notes" htmlFor="notes">
+        <Textarea
           id="notes"
           name="notes"
           rows={4}
           defaultValue={state.values?.notes ?? initialContact?.notes}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
-      </div>
+      </Field>
 
-      {state.error && (
-        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Alert tone="error">{state.error}</Alert>}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          {isPending ? "Saving..." : "Save"}
-        </button>
-        <Link
-          href="/"
-          className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-        >
-          Cancel
-        </Link>
-      </div>
+      <FormActions isPending={isPending} cancelHref="/" />
     </form>
-  );
-}
-
-function Field({
-  label,
-  name,
-  defaultValue,
-  type = "text",
-  required = false,
-}: {
-  label: string;
-  name: string;
-  defaultValue?: string;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor={name}>
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        defaultValue={defaultValue}
-        required={required}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-      />
-    </div>
   );
 }

@@ -1,9 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import type { ActionFormState } from "@/app/actions";
 import type { ContactLocation, ContactLocationKind } from "@/lib/types";
+import FormActions from "@/components/FormActions";
+import Alert from "@/components/ui/Alert";
+import Field from "@/components/ui/Field";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 
 const LOCATION_KIND_OPTIONS: { value: ContactLocationKind | ""; label: string }[] = [
   { value: "", label: "Unspecified" },
@@ -24,61 +28,35 @@ export default function LocationForm({ action, contactId, initialLocation }: Loc
   const [state, formAction, isPending] = useActionState(action, initialState);
 
   return (
-    <form action={formAction} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="location">
-          Location
-        </label>
-        <input
+    <form action={formAction} className="space-y-5">
+      <Field label="Location" htmlFor="location">
+        <Input
           id="location"
           name="location"
           type="text"
           placeholder="e.g. Boston, MA"
           defaultValue={state.values?.location ?? initialLocation?.location}
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="kind">
-          Type
-        </label>
-        <select
+      <Field label="Type" htmlFor="kind">
+        <Select
           id="kind"
           name="kind"
           defaultValue={state.values?.kind ?? initialLocation?.kind ?? ""}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         >
           {LOCATION_KIND_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
 
-      {state.error && (
-        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Alert tone="error">{state.error}</Alert>}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          {isPending ? "Saving..." : "Save"}
-        </button>
-        <Link
-          href={`/contacts/${contactId}`}
-          className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-        >
-          Cancel
-        </Link>
-      </div>
+      <FormActions isPending={isPending} cancelHref={`/contacts/${contactId}`} />
     </form>
   );
 }

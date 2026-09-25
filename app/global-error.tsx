@@ -16,9 +16,18 @@ export default function GlobalError({
     console.error("Unhandled global error:", error, "digest:", error.digest);
   }, [error]);
 
+  // Trove's design tokens, inlined (see app/globals.css).
   return (
-    <html>
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif" }}>
+    <html lang="en">
+      <body
+        style={{
+          margin: 0,
+          backgroundColor: "#faf9f7",
+          color: "#1c1b19",
+          fontFamily: "ui-sans-serif, system-ui, sans-serif",
+          WebkitFontSmoothing: "antialiased",
+        }}
+      >
         <main
           style={{
             display: "flex",
@@ -30,10 +39,20 @@ export default function GlobalError({
             textAlign: "center",
           }}
         >
-          <h1 style={{ fontSize: "1.125rem", fontWeight: 600, color: "#111827", margin: 0 }}>
+          <p
+            style={{
+              margin: "0 0 2rem",
+              fontSize: "1.25rem",
+              fontWeight: 600,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            trove
+          </p>
+          <h1 style={{ fontSize: "1.125rem", fontWeight: 600, margin: 0 }}>
             Something went wrong
           </h1>
-          <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#4b5563" }}>
+          <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", lineHeight: 1.6, color: "#6b6863" }}>
             We hit an unexpected error. Please try again.
           </p>
           <button
@@ -41,10 +60,11 @@ export default function GlobalError({
             onClick={() => unstable_retry()}
             style={{
               marginTop: "1.5rem",
-              borderRadius: "0.375rem",
-              backgroundColor: "#111827",
+              height: "2.25rem",
+              borderRadius: "0.5rem",
+              backgroundColor: "#1c1b19",
               color: "#fff",
-              padding: "0.5rem 1rem",
+              padding: "0 0.875rem",
               fontSize: "0.875rem",
               fontWeight: 500,
               border: "none",

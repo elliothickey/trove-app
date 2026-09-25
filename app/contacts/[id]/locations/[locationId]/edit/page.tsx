@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getContact, getContactLocation } from "@/lib/data";
 import { updateLocationAction } from "@/app/actions";
 import LocationForm from "@/components/LocationForm";
+import FormPage from "@/components/FormPage";
 
 export default async function EditLocationPage({
   params,
@@ -19,11 +20,12 @@ export default async function EditLocationPage({
   const boundUpdateAction = updateLocationAction.bind(null, id, locationId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-        Edit Location for {contact.name}
-      </h1>
+    <FormPage
+      title="Edit location"
+      backHref={`/contacts/${id}`}
+      backLabel={`Back to ${contact.name}`}
+    >
       <LocationForm action={boundUpdateAction} contactId={id} initialLocation={location} />
-    </main>
+    </FormPage>
   );
 }

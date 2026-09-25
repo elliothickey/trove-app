@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { unstable_rethrow } from "next/navigation";
 import { extractQuickCaptureAction, type QuickCaptureState } from "@/app/quick-capture/actions";
 import QuickCaptureReview from "@/components/QuickCaptureReview";
+import Alert from "@/components/ui/Alert";
+import Button from "@/components/ui/Button";
 
 const initialState: QuickCaptureState = { status: "idle" };
 
@@ -29,49 +31,57 @@ async function extractWithRecovery(
 
 export default function QuickCaptureForm() {
   const [state, formAction, isPending] = useActionState(extractWithRecovery, initialState);
+  const reviewRef = useRef<HTMLDivElement>(null);
+
+  // Each extraction returns a new state object, so this runs once per
+  // successful extraction -- never on initial load or after an error.
+  useEffect(() => {
+    if (state.status !== "success") return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    reviewRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }, [state]);
 
   return (
-    <div className="space-y-6">
-      <form action={formAction} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="note">
+    <div>
+      <form action={formAction}>
+        <div className="rounded-card border border-line bg-surface shadow-xs transition-colors focus-within:border-line-strong focus-within:ring-3 focus-within:ring-ink/5">
+          <label className="sr-only" htmlFor="note">
             Raw note
           </label>
           <textarea
             id="note"
             name="note"
-            rows={8}
+            rows={7}
             required
             // React resets the form after every action, so on a failed
             // extraction put the submitted note back instead of clearing it.
             defaultValue={state.status === "error" ? state.note : undefined}
-            placeholder="e.g. Met Sarah Chen at a party through James. She's a Brown junior from Hong Kong studying economics. She's interning at Evercore next summer. We talked about skiing."
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            placeholder="Met Sarah at a party through James. Brown junior from Hong Kong, interning at Evercore next summer. We talked about skiing."
+            className="block min-h-44 w-full resize-y rounded-t-card bg-transparent px-5 pb-4 pt-5 text-base leading-7 sm:text-[15px] text-ink placeholder:text-ink-subtle focus:outline-none"
           />
+          <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 sm:pl-5">
+            <p className="hidden text-xs text-ink-subtle sm:block">
+              No need to structure it. Names, places, plans, anything.
+            </p>
+            {/* Capture controls. A voice-capture control can sit beside the
+                primary action here later. */}
+            <div className="ml-auto flex items-center gap-2">
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Extracting..." : "Extract details"}
+              </Button>
+            </div>
+          </div>
         </div>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          {isPending ? "Extracting..." : "Extract with AI"}
-        </button>
       </form>
 
       {state.status === "error" && (
-        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <Alert tone="error" className="mt-4">
           {state.error}
-        </p>
+        </Alert>
       )}
 
       {state.status === "success" && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="mb-1 text-sm font-medium text-gray-500">Original note</h2>
-            <p className="whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-900">
-              {state.note}
-            </p>
-          </div>
+        <div ref={reviewRef} className="mt-12 scroll-mt-20">
           <QuickCaptureReview key={state.note} extracted={state.extracted} rawNote={state.note} />
         </div>
       )}

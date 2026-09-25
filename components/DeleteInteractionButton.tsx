@@ -37,11 +37,11 @@ export default function DeleteInteractionButton({
         type="button"
         onClick={handleClick}
         disabled={isPending}
-        className="text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+        className="text-xs font-medium text-ink-subtle transition-colors hover:text-danger disabled:opacity-50"
       >
         {isPending ? "Deleting..." : "Delete"}
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </span>
   );
 }

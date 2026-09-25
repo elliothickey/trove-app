@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
+import Button, { buttonStyles } from "@/components/ui/Button";
 
 export default function ErrorPage({
   error,
@@ -15,17 +17,16 @@ export default function ErrorPage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-      <h1 className="text-lg font-semibold text-gray-900">Something went wrong</h1>
-      <p className="mt-2 text-sm text-gray-600">
+      <h1 className="text-lg font-semibold tracking-[-0.01em] text-ink">Something went wrong</h1>
+      <p className="mt-2 text-sm leading-relaxed text-ink-muted">
         We hit an unexpected error. Please try again.
       </p>
-      <button
-        type="button"
-        onClick={() => unstable_retry()}
-        className="mt-6 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-      >
-        Try again
-      </button>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <Button onClick={() => unstable_retry()}>Try again</Button>
+        <Link href="/" className={buttonStyles({ variant: "ghost" })}>
+          Back to People
+        </Link>
+      </div>
     </main>
   );
 }

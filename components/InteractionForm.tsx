@@ -1,10 +1,15 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import type { ActionFormState } from "@/app/actions";
 import type { Interaction, InteractionType } from "@/lib/types";
 import { useIsClient } from "@/lib/useIsClient";
+import FormActions from "@/components/FormActions";
+import Alert from "@/components/ui/Alert";
+import Field from "@/components/ui/Field";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Textarea from "@/components/ui/Textarea";
 
 const INTERACTION_TYPE_OPTIONS: { value: InteractionType; label: string }[] = [
   { value: "meeting", label: "Meeting" },
@@ -72,106 +77,70 @@ export default function InteractionForm({
   }
 
   return (
-    <form action={submit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="type">
-          Type
-        </label>
-        <select
-          id="type"
-          name="type"
-          defaultValue={state.values?.type ?? initialInteraction?.type ?? "meeting"}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-        >
-          {INTERACTION_TYPE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+    <form action={submit} className="space-y-5">
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
+        <Field label="Type" htmlFor="type">
+          <Select
+            id="type"
+            name="type"
+            defaultValue={state.values?.type ?? initialInteraction?.type ?? "meeting"}
+          >
+            {INTERACTION_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field label="Date & time" htmlFor="occurredAtLocal">
+          {/* Keyed on isClient so it remounts with the browser-local default
+              once hydrated; the server render stays empty and disabled. */}
+          <Input
+            key={isClient ? "client" : "server"}
+            id="occurredAtLocal"
+            name="occurredAtLocal"
+            type="datetime-local"
+            defaultValue={defaultOccurredAtLocal}
+            disabled={!isClient}
+            required
+          />
+        </Field>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="occurredAtLocal">
-          Date &amp; time
-        </label>
-        {/* Keyed on isClient so it remounts with the browser-local default
-            once hydrated; the server render stays empty and disabled. */}
-        <input
-          key={isClient ? "client" : "server"}
-          id="occurredAtLocal"
-          name="occurredAtLocal"
-          type="datetime-local"
-          defaultValue={defaultOccurredAtLocal}
-          disabled={!isClient}
-          required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="location">
-          Location
-        </label>
-        <input
-          id="location"
-          name="location"
-          type="text"
-          placeholder="e.g. Zoom, Brown campus, McKinsey office"
-          defaultValue={state.values?.location ?? initialInteraction?.location}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="summary">
-          Summary
-        </label>
-        <input
+      <Field label="Summary" htmlFor="summary">
+        <Input
           id="summary"
           name="summary"
           type="text"
           placeholder="e.g. Coffee to catch up before her move"
           defaultValue={state.values?.summary ?? initialInteraction?.summary}
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700" htmlFor="notes">
-          Notes
-        </label>
-        <textarea
+      <Field label="Location" htmlFor="location">
+        <Input
+          id="location"
+          name="location"
+          type="text"
+          placeholder="e.g. Zoom, Brown campus, McKinsey office"
+          defaultValue={state.values?.location ?? initialInteraction?.location}
+        />
+      </Field>
+
+      <Field label="Notes" htmlFor="notes">
+        <Textarea
           id="notes"
           name="notes"
           rows={4}
           defaultValue={state.values?.notes ?? initialInteraction?.notes}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
-      </div>
+      </Field>
 
-      {state.error && (
-        <p className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Alert tone="error">{state.error}</Alert>}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          {isPending ? "Saving..." : "Save"}
-        </button>
-        <Link
-          href={`/contacts/${contactId}`}
-          className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-        >
-          Cancel
-        </Link>
-      </div>
+      <FormActions isPending={isPending} cancelHref={`/contacts/${contactId}`} />
     </form>
   );
 }

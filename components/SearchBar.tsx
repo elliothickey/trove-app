@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import type { ContactListItem } from "@/lib/types";
 import { normalizeText } from "@/lib/textMatch";
 import ContactList from "@/components/ContactList";
+import Input from "@/components/ui/Input";
+import { SearchIcon } from "@/components/ui/icons";
 
 export default function SearchBar({ contacts }: { contacts: ContactListItem[] }) {
   const [query, setQuery] = useState("");
@@ -17,13 +19,17 @@ export default function SearchBar({ contacts }: { contacts: ContactListItem[] })
 
   return (
     <div>
-      <input
-        type="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search by name, employer, school, location, or tag..."
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-gray-400"
-      />
+      <div className="relative mb-6">
+        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-subtle" />
+        <Input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search people..."
+          aria-label="Search people"
+          className="pl-9"
+        />
+      </div>
       <ContactList contacts={filtered} />
     </div>
   );

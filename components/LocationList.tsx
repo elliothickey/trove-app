@@ -2,6 +2,12 @@ import Link from "next/link";
 import type { ContactLocation, ContactLocationKind } from "@/lib/types";
 import { deleteLocationAction } from "@/app/actions";
 import DeleteRecordButton from "@/components/DeleteRecordButton";
+import {
+  ProfileEmpty,
+  recordControlsStyles,
+  recordEditLinkStyles,
+} from "@/components/ProfileSection";
+import Tag from "@/components/ui/Tag";
 
 const KIND_LABELS: Record<ContactLocationKind, string> = {
   hometown: "Hometown",
@@ -17,26 +23,22 @@ export default function LocationList({
   locations: ContactLocation[];
 }) {
   if (locations.length === 0) {
-    return <p className="text-sm text-gray-500">No locations added yet.</p>;
+    return <ProfileEmpty>No locations added yet.</ProfileEmpty>;
   }
 
   return (
     <ul className="space-y-3">
       {locations.map((item) => (
-        <li key={item.id} className="rounded-lg border border-gray-200 p-4">
+        <li key={item.id} className="group">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {item.kind && (
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                  {KIND_LABELS[item.kind]}
-                </span>
-              )}
-              <p className="text-sm font-medium text-gray-900">{item.location}</p>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-sm font-medium text-ink">{item.location}</p>
+              {item.kind && <Tag>{KIND_LABELS[item.kind]}</Tag>}
             </div>
-            <div className="flex shrink-0 items-center gap-3">
+            <div className={recordControlsStyles}>
               <Link
                 href={`/contacts/${contactId}/locations/${item.id}/edit`}
-                className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                className={recordEditLinkStyles}
               >
                 Edit
               </Link>
