@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { unstable_rethrow } from "next/navigation";
 import { extractQuickCaptureAction, type QuickCaptureState } from "@/app/quick-capture/actions";
 import QuickCaptureReview from "@/components/QuickCaptureReview";
+import VoiceCaptureButton, { type VoiceMessage } from "@/components/VoiceCaptureButton";
 import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
+import { cn } from "@/components/ui/cn";
 
 const initialState: QuickCaptureState = { status: "idle" };
 
@@ -32,6 +34,9 @@ async function extractWithRecovery(
 export default function QuickCaptureForm() {
   const [state, formAction, isPending] = useActionState(extractWithRecovery, initialState);
   const reviewRef = useRef<HTMLDivElement>(null);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [voiceMessage, setVoiceMessage] = useState<VoiceMessage | null>(null);
 
   // Each extraction returns a new state object, so this runs once per
   // successful extraction -- never on initial load or after an error.
@@ -41,6 +46,23 @@ export default function QuickCaptureForm() {
     reviewRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
   }, [state]);
 
+  // The note stays uncontrolled (see defaultValue below), so a transcript is
+  // appended straight to its DOM value -- never replacing what's there --
+  // and the existing FormData submission picks it up unchanged.
+  function appendTranscript(text: string) {
+    const textarea = noteRef.current;
+    if (!textarea) return;
+    const existing = textarea.value;
+    const separator = existing === "" || /\s$/.test(existing) ? "" : " ";
+    textarea.value = existing + separator + text;
+    textarea.scrollTop = textarea.scrollHeight;
+    // Focusing on touch devices would pop up the on-screen keyboard.
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      textarea.focus({ preventScroll: true });
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+  }
+
   return (
     <div>
       <form action={formAction}>
@@ -49,6 +71,7 @@ export default function QuickCaptureForm() {
             Raw note
           </label>
           <textarea
+            ref={noteRef}
             id="note"
             name="note"
             rows={7}
@@ -63,15 +86,33 @@ export default function QuickCaptureForm() {
             <p className="hidden text-xs text-ink-subtle sm:block">
               No need to structure it. Names, places, plans, anything.
             </p>
-            {/* Capture controls. A voice-capture control can sit beside the
-                primary action here later. */}
             <div className="ml-auto flex items-center gap-2">
-              <Button type="submit" disabled={isPending}>
+              {/* Voice only fills the note. It's locked while an extraction
+                  is pending (the form reset would overwrite the transcript),
+                  and Extract is locked while voice is busy. */}
+              <VoiceCaptureButton
+                disabled={isPending}
+                onTranscript={appendTranscript}
+                onBusyChange={setVoiceBusy}
+                onMessageChange={setVoiceMessage}
+              />
+              <Button type="submit" disabled={isPending || voiceBusy}>
                 {isPending ? "Extracting..." : "Extract details"}
               </Button>
             </div>
           </div>
         </div>
+        {voiceMessage && (
+          <p
+            role={voiceMessage.tone === "error" ? "alert" : "status"}
+            className={cn(
+              "mt-2 px-1 text-xs leading-relaxed",
+              voiceMessage.tone === "error" ? "text-danger" : "text-ink-muted"
+            )}
+          >
+            {voiceMessage.text}
+          </p>
+        )}
       </form>
 
       {state.status === "error" && (
